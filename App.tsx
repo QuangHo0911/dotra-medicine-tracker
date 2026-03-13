@@ -1,20 +1,27 @@
+import React, { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { PaperProvider } from 'react-native-paper';
+import { MedicineProvider } from './src/context/MedicineContext';
+import { AppNavigator } from './src/navigation/AppNavigator';
+import { useNotifications } from './src/hooks/useNotifications';
+
+// Notifications setup component
+const NotificationsSetup: React.FC = () => {
+  useNotifications();
+  return null;
+};
 
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <SafeAreaProvider>
+      <PaperProvider>
+        <MedicineProvider>
+          <NotificationsSetup />
+          <AppNavigator />
+          <StatusBar style="light" />
+        </MedicineProvider>
+      </PaperProvider>
+    </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
