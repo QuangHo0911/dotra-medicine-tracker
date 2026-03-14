@@ -1,14 +1,11 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
-  Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   ScrollView,
   Switch,
   Alert,
-  ActivityIndicator,
 } from 'react-native';
 import { Clock, XCircle, Plus } from 'lucide-react-native';
 import { Stepper } from '../components/Stepper';
@@ -17,6 +14,10 @@ import { useMedicine } from '../context/MedicineContext';
 import { MedicineFormData } from '../types';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
+import { Card } from '../components/ui/Card';
+import { Text } from '../components/ui/Text';
+import { Button } from '../components/ui/Button';
+import { cn } from '../utils/cn';
 
 type CreateMedicineScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -73,11 +74,11 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
 
   const validate = useCallback((): boolean => {
     const newErrors: { name?: string } = {};
-    
+
     if (!name.trim()) {
       newErrors.name = 'Please enter a medicine name';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   }, [name]);
@@ -99,7 +100,7 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
       };
 
       const newMedicine = await createMedicine(data);
-      
+
       // Show success feedback
       Alert.alert(
         'Success',
@@ -135,20 +136,25 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
   }, [name, timesPerDay, durationDays]);
 
   return (
-    <ScrollView 
-      style={styles.container} 
+    <ScrollView
+      className="flex-1 bg-background"
       keyboardShouldPersistTaps="handled"
-      contentContainerStyle={styles.contentContainer}
+      contentContainerClassName="pb-8"
     >
-      <View style={styles.form}>
+      <View className="p-4">
         {/* Medicine Name */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Medicine Details</Text>
-          
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Name *</Text>
+        <Card className="mb-4">
+          <Text variant="h4" className="mb-4">Medicine Details</Text>
+
+          <View className="mb-2">
+            <Text variant="label">
+              <Text className="text-danger">*</Text> Medicine Name
+            </Text>
             <TextInput
-              style={[styles.input, errors.name && styles.inputError]}
+              className={cn(
+                "border-2 border-border rounded-xl px-4 py-3.5 bg-background-input mt-2 text-base text-text",
+                errors.name && "border-danger bg-danger-light"
+              )}
               value={name}
               onChangeText={(text) => {
                 setName(text);
@@ -159,17 +165,17 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
               autoFocus
             />
             {errors.name && (
-              <Text style={styles.errorText}>{errors.name}</Text>
+              <Text variant="caption" color="danger" className="mt-2">{errors.name}</Text>
             )}
-            <Text style={styles.characterCount}>{name.length}/50</Text>
+            <Text variant="caption" color="muted" className="mt-2 text-right">{name.length}/50</Text>
           </View>
-        </View>
+        </Card>
 
         {/* Schedule */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Schedule</Text>
-          
-          <View style={styles.stepperRow}>
+        <Card className="mb-4">
+          <Text variant="h4" className="mb-4">Schedule</Text>
+
+          <View className="mb-4">
             <Stepper
               label="Times per day"
               value={timesPerDay}
@@ -179,7 +185,7 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
             />
           </View>
 
-          <View style={styles.stepperRow}>
+          <View className="mb-0">
             <Stepper
               label="Duration (days)"
               value={durationDays}
@@ -190,14 +196,14 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
               showUpgrade={true}
             />
           </View>
-        </View>
+        </Card>
 
         {/* Reminders */}
-        <View style={styles.card}>
-          <View style={styles.reminderHeader}>
+        <Card className="mb-4">
+          <View className="flex-row justify-between items-start mb-4">
             <View>
-              <Text style={styles.cardTitle}>Reminders</Text>
-              <Text style={styles.reminderSubtitle}>Get notified when it's time</Text>
+              <Text variant="h4">Reminders</Text>
+              <Text variant="caption" color="muted">Get notified when it's time</Text>
             </View>
             <Switch
               value={remindersEnabled}
@@ -208,24 +214,24 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
           </View>
 
           {remindersEnabled && (
-            <View style={styles.reminderTimesContainer}>
+            <View className="mt-2">
               {reminderTimes.map((time, index) => (
-                <View key={index} style={styles.reminderTimeRow}>
+                <View key={index} className="flex-row items-center mb-3">
                   <TouchableOpacity
-                    style={styles.timeDisplayContainer}
+                    className="flex-1 flex-row items-center border-2 border-border rounded-xl px-4 py-3 bg-background-input"
                     onPress={() => handleTimePress(index)}
                     activeOpacity={0.7}
                   >
                     <Clock size={20} color="#666" />
-                    <Text style={styles.timeDisplayText}>{time}</Text>
+                    <Text className="flex-1 ml-3 text-base font-medium text-text">{time}</Text>
                   </TouchableOpacity>
                   {reminderTimes.length > 1 && (
                     <TouchableOpacity
                       onPress={() => handleRemoveReminderTime(index)}
-                      style={styles.removeTimeButton}
+                      className="ml-3 p-1"
                       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                     >
-                      <XCircle size={24} color="#f44336" />
+                      <XCircle size={24} color="#ef5350" />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -233,36 +239,31 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
 
               {reminderTimes.length < timesPerDay && (
                 <TouchableOpacity
-                  style={styles.addTimeButton}
+                  className="flex-row items-center py-2 mt-1"
                   onPress={handleAddReminderTime}
                   activeOpacity={0.7}
                 >
-                  <View style={styles.addTimeIcon}>
+                  <View className="w-7 h-7 rounded-full bg-primary justify-center items-center mr-2.5">
                     <Plus size={16} color="#fff" />
                   </View>
-                  <Text style={styles.addTimeText}>Add reminder time</Text>
+                  <Text className="text-[15px] font-semibold text-primary">Add reminder time</Text>
                 </TouchableOpacity>
               )}
             </View>
           )}
-        </View>
+        </Card>
 
         {/* Save Button */}
-        <TouchableOpacity
-          style={[
-            styles.saveButton, 
-            (!isFormValid || isSaving) && styles.saveButtonDisabled
-          ]}
+        <Button
+          variant="primary"
+          size="lg"
+          isLoading={isSaving}
+          isDisabled={!isFormValid}
           onPress={handleSave}
-          disabled={!isFormValid || isSaving}
-          activeOpacity={0.8}
+          className="mt-2"
         >
-          {isSaving ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.saveButtonText}>Create Medicine</Text>
-          )}
-        </TouchableOpacity>
+          Create Medicine
+        </Button>
       </View>
 
       <TimePickerModal
@@ -274,152 +275,3 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
     </ScrollView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f8f9fa',
-  },
-  contentContainer: {
-    paddingBottom: 32,
-  },
-  form: {
-    padding: 16,
-  },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1a1a1a',
-    marginBottom: 16,
-  },
-  inputGroup: {
-    marginBottom: 8,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#555',
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1.5,
-    borderColor: '#e0e0e0',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    backgroundColor: '#fafafa',
-  },
-  inputError: {
-    borderColor: '#f44336',
-    backgroundColor: '#fff5f5',
-  },
-  errorText: {
-    fontSize: 12,
-    color: '#f44336',
-    marginTop: 6,
-  },
-  characterCount: {
-    fontSize: 12,
-    color: '#999',
-    textAlign: 'right',
-    marginTop: 6,
-  },
-  stepperRow: {
-    marginBottom: 16,
-  },
-  reminderHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  reminderSubtitle: {
-    fontSize: 13,
-    color: '#888',
-    marginTop: -12,
-    marginBottom: 16,
-  },
-  reminderTimesContainer: {
-    marginTop: 8,
-  },
-  reminderTimeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  timeDisplayContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#e0e0e0',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#fafafa',
-  },
-  timeDisplayText: {
-    flex: 1,
-    marginLeft: 12,
-    fontSize: 16,
-    color: '#1a1a1a',
-    fontWeight: '500',
-  },
-  removeTimeButton: {
-    marginLeft: 12,
-    padding: 4,
-  },
-  addTimeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    marginTop: 4,
-  },
-  addTimeIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#4CAF50',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  addTimeText: {
-    fontSize: 15,
-    color: '#4CAF50',
-    fontWeight: '600',
-  },
-  saveButton: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 18,
-    borderRadius: 16,
-    alignItems: 'center',
-    marginTop: 8,
-    shadowColor: '#4CAF50',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  saveButtonDisabled: {
-    backgroundColor: '#a5d6a7',
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  saveButtonText: {
-    color: '#fff',
-    fontSize: 17,
-    fontWeight: '700',
-  },
-});

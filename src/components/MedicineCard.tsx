@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
-  Text,
   TouchableOpacity,
-  StyleSheet,
   Alert,
   Dimensions,
   Modal,
@@ -15,6 +13,9 @@ import { CircleCarousel } from './CircleCarousel';
 import { ConfettiCelebration } from './ConfettiCelebration';
 import { useMedicine } from '../context/MedicineContext';
 import { getToday, getDayProgress } from '../utils/dateUtils';
+import { Text } from './ui/Text';
+import { Badge } from './ui/Card';
+import { cn } from '../utils/cn';
 
 interface MedicineCardProps {
   medicine: Medicine;
@@ -105,7 +106,7 @@ export const MedicineCard: React.FC<MedicineCardProps> = React.memo(({ medicine,
     let backgroundColor = '#fff';
     if (isCompleted) backgroundColor = '#e8f5e9';
     else if (todayChecks >= medicine.timesPerDay) backgroundColor = '#f1f8e9';
-    
+
     return { backgroundColor };
   }, [isCompleted, todayChecks, medicine.timesPerDay]);
 
@@ -118,25 +119,36 @@ export const MedicineCard: React.FC<MedicineCardProps> = React.memo(({ medicine,
   }, [todayChecks, medicine.timesPerDay]);
 
   return (
-    <View style={[styles.container, cardStyle]}>
+    <View
+      style={cardStyle}
+      className="mx-4 my-2 p-5 rounded-3xl shadow-card"
+    >
       <ConfettiCelebration
         trigger={showConfetti}
         onComplete={() => setShowConfetti(false)}
       />
 
-      <View style={styles.header}>
-        <View style={styles.titleContainer}>
-          <View style={styles.nameRow}>
-            <View style={[styles.iconContainer, { backgroundColor: progressColor + '20' }]}>
+      <View className="flex-row justify-between items-start mb-3">
+        <View className="flex-1 mr-2">
+          <View className="flex-row items-center mb-2">
+            <View
+              className="w-9 h-9 rounded-xl justify-center items-center mr-3"
+              style={{ backgroundColor: progressColor + '20' }}
+            >
               <Pill size={20} color={progressColor} />
             </View>
-            <Text style={styles.name} numberOfLines={1} ellipsizeMode="tail">
+            <Text
+              variant="h4"
+              className="flex-1"
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
               {medicine.name}
             </Text>
           </View>
-          
-          <View style={styles.metaRow}>
-            <Text style={styles.progressText}>
+
+          <View className="flex-row items-center flex-wrap">
+            <Text variant="caption" color="secondary">
               Day {dayProgress}/{medicine.durationDays}
             </Text>
           </View>
@@ -145,7 +157,7 @@ export const MedicineCard: React.FC<MedicineCardProps> = React.memo(({ medicine,
         <View ref={menuButtonRef}>
           <TouchableOpacity
             onPress={openMenu}
-            style={styles.menuButton}
+            className="p-1"
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <MoreVertical size={24} color="#666" />
@@ -160,13 +172,12 @@ export const MedicineCard: React.FC<MedicineCardProps> = React.memo(({ medicine,
           onRequestClose={closeMenu}
         >
           <TouchableOpacity
-            style={styles.menuOverlay}
+            className="flex-1 bg-transparent"
             activeOpacity={1}
             onPress={closeMenu}
           >
             <Animated.View
               style={[
-                styles.menuContainer,
                 {
                   position: 'absolute',
                   top: menuPosition.y,
@@ -180,31 +191,32 @@ export const MedicineCard: React.FC<MedicineCardProps> = React.memo(({ medicine,
                   }],
                 },
               ]}
+              className="bg-background-card rounded-2xl py-2 px-1 min-w-[140px] shadow-dropdown"
             >
               <TouchableOpacity
-                style={styles.menuItem}
+                className="flex-row items-center py-3 px-4 rounded-xl"
                 onPress={handleEdit}
                 activeOpacity={0.7}
               >
                 <Pencil size={18} color="#666" />
-                <Text style={styles.menuItemText}>Edit</Text>
+                <Text className="text-[15px] font-semibold ml-3">Edit</Text>
               </TouchableOpacity>
-              <View style={styles.menuDivider} />
+              <View className="h-px bg-border mx-3" />
               <TouchableOpacity
-                style={styles.menuItem}
+                className="flex-row items-center py-3 px-4 rounded-xl"
                 onPress={handleDelete}
                 activeOpacity={0.7}
               >
                 <Trash2 size={18} color="#ef5350" />
-                <Text style={[styles.menuItemText, styles.menuItemTextDanger]}>Delete</Text>
+                <Text className="text-[15px] font-semibold ml-3 text-danger">Delete</Text>
               </TouchableOpacity>
             </Animated.View>
           </TouchableOpacity>
         </Modal>
       </View>
 
-      <View style={styles.carouselContainer}>
-        <Text style={styles.carouselLabel}>
+      <View className="mt-1">
+        <Text variant="caption" color="secondary" className="mb-2.5 font-medium">
           Today's doses ({todayChecks}/{medicine.timesPerDay})
         </Text>
         <CircleCarousel
@@ -216,20 +228,22 @@ export const MedicineCard: React.FC<MedicineCardProps> = React.memo(({ medicine,
 
         {/* Reminder Time Badges */}
         {medicine.remindersEnabled && medicine.reminderTimes && medicine.reminderTimes.length > 0 && (
-          <View style={styles.reminderBadgesContainer}>
+          <View className="flex-row flex-wrap gap-2 mt-3 pt-3 border-t border-border">
             {medicine.reminderTimes.map((time, index) => (
-              <View key={index} style={styles.reminderBadge}>
-                <Text style={styles.reminderBadgeText}>{time}</Text>
-              </View>
+              <Badge key={index} variant="info" size="sm">
+                {time}
+              </Badge>
             ))}
           </View>
         )}
       </View>
 
       {isCompleted && (
-        <View style={styles.completedBadge}>
+        <View className="flex-row items-center mt-4 pt-3 border-t border-success/30">
           <CheckCircle size={18} color="#4CAF50" />
-          <Text style={styles.completedText}>Course completed!</Text>
+          <Text className="text-sm font-bold text-success ml-1.5">
+            Course completed!
+          </Text>
         </View>
       )}
     </View>
@@ -237,140 +251,3 @@ export const MedicineCard: React.FC<MedicineCardProps> = React.memo(({ medicine,
 });
 
 MedicineCard.displayName = 'MedicineCard';
-
-const styles = StyleSheet.create({
-  container: {
-    marginHorizontal: 16,
-    marginVertical: 8,
-    padding: 20,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  titleContainer: {
-    flex: 1,
-    marginRight: 8,
-  },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  iconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  name: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1a1a1a',
-    flex: 1,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-  },
-  progressText: {
-    fontSize: 13,
-    color: '#666',
-  },
-  menuButton: {
-    padding: 4,
-  },
-  menuOverlay: {
-    flex: 1,
-    backgroundColor: 'transparent',
-  },
-  menuContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    paddingVertical: 8,
-    paddingHorizontal: 4,
-    minWidth: 140,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-  },
-  menuItemText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1a1a1a',
-    marginLeft: 12,
-  },
-  menuItemTextDanger: {
-    color: '#ef5350',
-  },
-  menuDivider: {
-    height: 1,
-    backgroundColor: '#e0e0e0',
-    marginHorizontal: 12,
-  },
-  carouselContainer: {
-    marginTop: 4,
-  },
-  carouselLabel: {
-    fontSize: 13,
-    color: '#666',
-    marginBottom: 10,
-    fontWeight: '500',
-  },
-  reminderBadgesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-  },
-  reminderBadge: {
-    backgroundColor: '#e3f2fd',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#bbdefb',
-  },
-  reminderBadgeText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#1976d2',
-  },
-  completedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 16,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#c8e6c9',
-  },
-  completedText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#4CAF50',
-    marginLeft: 6,
-  },
-});

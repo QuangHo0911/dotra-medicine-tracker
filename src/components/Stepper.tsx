@@ -1,13 +1,13 @@
 import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
-  Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   Alert,
 } from 'react-native';
 import { Minus, Plus, AlertCircle, ChevronRight } from 'lucide-react-native';
+import { Text } from './ui/Text';
+import { cn } from '../utils/cn';
 
 interface StepperProps {
   value: number;
@@ -104,14 +104,17 @@ export const Stepper: React.FC<StepperProps> = React.memo(({
   const isAtMax = value >= max;
 
   return (
-    <View style={styles.container}>
-      {label && <Text style={styles.label}>{label}</Text>}
+    <View className="my-1">
+      {label && <Text variant="label" color="secondary" className="mb-3">{label}</Text>}
 
-      <View style={styles.stepperContainer}>
+      <View className="flex-row items-center justify-start">
         <TouchableOpacity
           onPress={decrement}
           disabled={isAtMin}
-          style={[styles.button, isAtMin && styles.buttonDisabled]}
+          className={cn(
+            "w-11 h-11 rounded-full bg-primary justify-center items-center shadow-button",
+            isAtMin && "bg-border shadow-none"
+          )}
           activeOpacity={0.7}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
@@ -121,10 +124,15 @@ export const Stepper: React.FC<StepperProps> = React.memo(({
           />
         </TouchableOpacity>
 
-        <View style={[styles.valueContainer, isEditing && styles.valueContainerActive]}>
+        <View
+          className={cn(
+            "min-w-[70px] h-12 justify-center items-center mx-4 bg-background-input rounded-xl border-2 border-border",
+            isEditing && "border-primary bg-background-card"
+          )}
+        >
           <TextInput
             ref={inputRef}
-            style={styles.valueInput}
+            className="text-[22px] font-bold text-text text-center min-w-[50px] p-0"
             value={inputValue}
             onChangeText={handleInputChange}
             onBlur={handleInputBlur}
@@ -137,7 +145,10 @@ export const Stepper: React.FC<StepperProps> = React.memo(({
         <TouchableOpacity
           onPress={increment}
           disabled={isAtMax}
-          style={[styles.button, isAtMax && styles.buttonDisabled]}
+          className={cn(
+            "w-11 h-11 rounded-full bg-primary justify-center items-center shadow-button",
+            isAtMax && "bg-border shadow-none"
+          )}
           activeOpacity={0.7}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
@@ -151,12 +162,14 @@ export const Stepper: React.FC<StepperProps> = React.memo(({
       {/* Upgrade Callout */}
       {showUpgradeCallout && upgradeMessage && (
         <TouchableOpacity
-          style={styles.upgradeCallout}
+          className="flex-row items-center bg-warning-light rounded-lg px-3 py-2.5 mt-3"
           onPress={handleUpgradePress}
           activeOpacity={0.8}
         >
           <AlertCircle size={16} color="#f59e0b" />
-          <Text style={styles.upgradeText}>{upgradeMessage}</Text>
+          <Text className="flex-1 text-[13px] text-warning-dark ml-2 font-medium">
+            {upgradeMessage}
+          </Text>
           <ChevronRight size={16} color="#f59e0b" />
         </TouchableOpacity>
       )}
@@ -165,77 +178,3 @@ export const Stepper: React.FC<StepperProps> = React.memo(({
 });
 
 Stepper.displayName = 'Stepper';
-
-const styles = StyleSheet.create({
-  container: {
-    marginVertical: 4,
-  },
-  label: {
-    fontSize: 14,
-    color: '#555',
-    marginBottom: 12,
-    fontWeight: '600',
-  },
-  stepperContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-  },
-  button: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#4CAF50',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#4CAF50',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  buttonDisabled: {
-    backgroundColor: '#e0e0e0',
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  valueContainer: {
-    minWidth: 70,
-    height: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginHorizontal: 16,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: '#e0e0e0',
-  },
-  valueContainerActive: {
-    borderColor: '#4CAF50',
-    backgroundColor: '#fff',
-  },
-  valueInput: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#1a1a1a',
-    textAlign: 'center',
-    minWidth: 50,
-    padding: 0,
-  },
-  upgradeCallout: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fef3c7',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginTop: 12,
-  },
-  upgradeText: {
-    flex: 1,
-    fontSize: 13,
-    color: '#92400e',
-    marginLeft: 8,
-    fontWeight: '500',
-  },
-});

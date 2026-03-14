@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
-  Text,
   TouchableOpacity,
   Modal,
-  StyleSheet,
   Dimensions,
   FlatList,
 } from 'react-native';
+import { Text } from './ui/Text';
+import { Button } from './ui/Button';
+import { cn } from '../utils/cn';
 
 interface TimePickerModalProps {
   visible: boolean;
@@ -80,13 +81,21 @@ export const TimePickerModal: React.FC<TimePickerModalProps> = ({
     const isSelected = index === selectedHourIndex;
     return (
       <TouchableOpacity
-        style={[styles.timeItem, isSelected && styles.timeItemSelected]}
+        className={cn(
+          "h-11 justify-center items-center",
+          isSelected && "bg-background-input rounded-lg"
+        )}
         onPress={() => {
           handleHourChange(index);
           hourListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
         }}
       >
-        <Text style={[styles.timeItemText, isSelected && styles.timeItemTextSelected]}>
+        <Text
+          className={cn(
+            "text-xl font-semibold",
+            isSelected ? "text-text font-bold" : "text-text-muted"
+          )}
+        >
           {item.toString().padStart(2, '0')}
         </Text>
       </TouchableOpacity>
@@ -97,13 +106,21 @@ export const TimePickerModal: React.FC<TimePickerModalProps> = ({
     const isSelected = index === selectedMinuteIndex;
     return (
       <TouchableOpacity
-        style={[styles.timeItem, isSelected && styles.timeItemSelected]}
+        className={cn(
+          "h-11 justify-center items-center",
+          isSelected && "bg-background-input rounded-lg"
+        )}
         onPress={() => {
           handleMinuteChange(index);
           minuteListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
         }}
       >
-        <Text style={[styles.timeItemText, isSelected && styles.timeItemTextSelected]}>
+        <Text
+          className={cn(
+            "text-xl font-semibold",
+            isSelected ? "text-text font-bold" : "text-text-muted"
+          )}
+        >
           {item.toString().padStart(2, '0')}
         </Text>
       </TouchableOpacity>
@@ -117,13 +134,19 @@ export const TimePickerModal: React.FC<TimePickerModalProps> = ({
       animationType="fade"
       onRequestClose={handleCancel}
     >
-      <View style={styles.overlay}>
-        <View style={styles.container}>
-          <Text style={styles.title}>Select Time</Text>
+      <View className="flex-1 bg-black/50 justify-center items-center p-5">
+        <View
+          className="bg-background-card rounded-2xl p-6 items-center"
+          style={{ width: Math.min(width - 40, 320) }}
+        >
+          <Text variant="h4" className="mb-5">Select Time</Text>
 
-          <View style={styles.pickersContainer}>
+          <View
+            className="flex-row items-center justify-center mb-5"
+            style={{ height: ITEM_HEIGHT * VISIBLE_ITEMS }}
+          >
             {/* Hours Picker */}
-            <View style={styles.pickerWrapper}>
+            <View className="items-center w-[100px] overflow-hidden" style={{ height: ITEM_HEIGHT * VISIBLE_ITEMS }}>
               <FlatList
                 ref={hourListRef}
                 data={hourOptions}
@@ -146,15 +169,16 @@ export const TimePickerModal: React.FC<TimePickerModalProps> = ({
                   paddingVertical: ITEM_HEIGHT * ((VISIBLE_ITEMS - 1) / 2),
                 }}
                 initialScrollIndex={selectedHourIndex}
-                style={styles.flatList}
+                className="w-[100px]"
+                style={{ height: ITEM_HEIGHT * VISIBLE_ITEMS }}
               />
             </View>
 
             {/* Separator */}
-            <Text style={styles.separator}>:</Text>
+            <Text className="text-2xl font-bold text-text mx-2 mb-2.5">:</Text>
 
             {/* Minutes Picker */}
-            <View style={styles.pickerWrapper}>
+            <View className="items-center w-[100px] overflow-hidden" style={{ height: ITEM_HEIGHT * VISIBLE_ITEMS }}>
               <FlatList
                 ref={minuteListRef}
                 data={minuteOptions}
@@ -177,124 +201,33 @@ export const TimePickerModal: React.FC<TimePickerModalProps> = ({
                   paddingVertical: ITEM_HEIGHT * ((VISIBLE_ITEMS - 1) / 2),
                 }}
                 initialScrollIndex={selectedMinuteIndex}
-                style={styles.flatList}
+                className="w-[100px]"
+                style={{ height: ITEM_HEIGHT * VISIBLE_ITEMS }}
               />
             </View>
           </View>
 
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
+          <View className="flex-row justify-between w-full">
+            <Button
+              variant="secondary"
+              size="md"
               onPress={handleCancel}
-              style={[styles.button, styles.cancelButton]}
-              activeOpacity={0.7}
+              className="flex-1 mr-2"
             >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
+              Cancel
+            </Button>
 
-            <TouchableOpacity
+            <Button
+              variant="primary"
+              size="md"
               onPress={handleConfirm}
-              style={[styles.button, styles.confirmButton]}
-              activeOpacity={0.7}
+              className="flex-1 ml-2"
             >
-              <Text style={styles.confirmButtonText}>Done</Text>
-            </TouchableOpacity>
+              Done
+            </Button>
           </View>
         </View>
       </View>
     </Modal>
   );
 };
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  container: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 24,
-    width: Math.min(width - 40, 320),
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1a1a1a',
-    marginBottom: 20,
-  },
-  pickersContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: ITEM_HEIGHT * VISIBLE_ITEMS,
-    marginBottom: 20,
-  },
-  pickerWrapper: {
-    alignItems: 'center',
-    width: 100,
-    height: ITEM_HEIGHT * VISIBLE_ITEMS,
-    overflow: 'hidden',
-  },
-  flatList: {
-    width: 100,
-    height: ITEM_HEIGHT * VISIBLE_ITEMS,
-  },
-  timeItem: {
-    height: ITEM_HEIGHT,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  timeItemSelected: {
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-  },
-  timeItemText: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#999',
-  },
-  timeItemTextSelected: {
-    color: '#1a1a1a',
-    fontWeight: '700',
-  },
-  separator: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1a1a1a',
-    marginHorizontal: 8,
-    marginBottom: 10,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  cancelButton: {
-    backgroundColor: '#f5f5f5',
-    marginRight: 8,
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#666',
-  },
-  confirmButton: {
-    backgroundColor: '#4CAF50',
-    marginLeft: 8,
-  },
-  confirmButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-  },
-});
