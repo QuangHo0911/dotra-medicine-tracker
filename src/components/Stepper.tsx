@@ -17,6 +17,7 @@ interface StepperProps {
   label?: string;
   upgradeMessage?: string; // Message shown when exceeding max
   showUpgrade?: boolean;   // Whether to show upgrade callout
+  onInputFocus?: () => void; // Callback when input is focused for scrolling
 }
 
 export const Stepper: React.FC<StepperProps> = React.memo(({
@@ -27,6 +28,7 @@ export const Stepper: React.FC<StepperProps> = React.memo(({
   label,
   upgradeMessage,
   showUpgrade = false,
+  onInputFocus,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState(value.toString());
@@ -94,7 +96,8 @@ export const Stepper: React.FC<StepperProps> = React.memo(({
   const handleInputFocus = useCallback(() => {
     setIsEditing(true);
     setInputValue(value.toString());
-  }, [value]);
+    onInputFocus?.();
+  }, [value, onInputFocus]);
 
   const isAtMin = value <= min;
   const isAtMax = value >= max;

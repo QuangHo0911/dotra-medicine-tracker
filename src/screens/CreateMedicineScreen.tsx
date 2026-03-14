@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   TextInput,
@@ -6,6 +6,8 @@ import {
   ScrollView,
   Switch,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Clock, XCircle, Plus } from 'lucide-react-native';
@@ -129,9 +131,43 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
     return name.trim().length > 0 && timesPerDay >= 1 && durationDays >= 1;
   }, [name, timesPerDay, durationDays]);
 
+  // Refs for scrolling to inputs when keyboard appears
+  const timesPerDayRef = useRef<View>(null);
+  const durationDaysRef = useRef<View>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  const handleTimesPerDayFocus = useCallback(() => {
+    setTimeout(() => {
+      timesPerDayRef.current?.measureLayout(
+        scrollViewRef.current as any,
+        (x, y) => {
+          scrollViewRef.current?.scrollTo({ y: y - 100, animated: true });
+        },
+        () => {}
+      );
+    }, 100);
+  }, []);
+
+  const handleDurationFocus = useCallback(() => {
+    setTimeout(() => {
+      durationDaysRef.current?.measureLayout(
+        scrollViewRef.current as any,
+        (x, y) => {
+          scrollViewRef.current?.scrollTo({ y: y - 100, animated: true });
+        },
+        () => {}
+      );
+    }, 100);
+  }, []);
+
   return (
-    <View className="flex-1 bg-background">
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      className="flex-1 bg-background"
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+    >
       <ScrollView
+        ref={scrollViewRef}
         className="flex-1"
         keyboardShouldPersistTaps="handled"
         contentContainerClassName="pb-28"
@@ -170,17 +206,18 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
         <Card className="mb-4">
           <Text variant="h4" className="mb-4">Schedule</Text>
 
-          <View className="mb-4">
+          <View className="mb-4" ref={timesPerDayRef}>
             <Stepper
               label="Times per day"
               value={timesPerDay}
               onChange={handleTimesPerDayChange}
               min={1}
               max={10}
+              onInputFocus={handleTimesPerDayFocus}
             />
           </View>
 
-          <View className="mb-0">
+          <View className="mb-0" ref={durationDaysRef}>
             <Stepper
               label="Duration (days)"
               value={durationDays}
@@ -189,6 +226,7 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
               max={365}
               upgradeMessage="Maximum duration is 365 days."
               showUpgrade={true}
+              onInputFocus={handleDurationFocus}
             />
           </View>
         </Card>
@@ -269,6 +307,6 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
       isLoading={isSaving}
       isDisabled={!isFormValid}
     />
-  </View>
+  </KeyboardAvoidingView>
   );
 };
