@@ -2,28 +2,34 @@ import {
   collection,
   doc,
   setDoc,
-  getDoc,
   getDocs,
   deleteDoc,
   query,
   where,
-  onSnapshot,
-  Unsubscribe,
 } from 'firebase/firestore';
-import { db, auth } from '../config/firebase';
+import { db, auth, isFirebaseConfigured } from '../config/firebase';
 import { Medicine } from '../types';
 
 const MEDICINES_COLLECTION = 'medicines';
 
+// Helper to check if Firebase is available
+const ensureFirebase = (): boolean => {
+  if (!isFirebaseConfigured() || !db || !auth.currentUser) {
+    return false;
+  }
+  return true;
+};
+
 export const saveMedicineToFirebase = async (medicine: Medicine): Promise<boolean> => {
-  const userId = auth.currentUser?.uid;
-  if (!userId) {
-    console.warn('No authenticated user, skipping Firebase save');
+  if (!ensureFirebase()) {
     return false;
   }
 
+  const userId = auth.currentUser?.uid;
+  if (!userId) return false;
+
   try {
-    const medicineRef = doc(db, MEDICINES_COLLECTION, medicine.id);
+    const medicineRef = doc(db!, MEDICINES_COLLECTION, medicine.id);
     await setDoc(medicineRef, {
       ...medicine,
       userId,
@@ -32,19 +38,20 @@ export const saveMedicineToFirebase = async (medicine: Medicine): Promise<boolea
     return true;
   } catch (error) {
     console.error('Error saving medicine to Firebase:', error);
-    return false;
+    throw error; // Let caller handle the error
   }
 };
 
 export const getMedicinesFromFirebase = async (): Promise<Medicine[]> => {
-  const userId = auth.currentUser?.uid;
-  if (!userId) {
-    console.warn('No authenticated user, cannot fetch from Firebase');
+  if (!ensureFirebase()) {
     return [];
   }
 
+  const userId = auth.currentUser?.uid;
+  if (!userId) return [];
+
   try {
-    const medicinesRef = collection(db, MEDICINES_COLLECTION);
+    const medicinesRef = collection(db!, MEDICINES_COLLECTION);
     const q = query(medicinesRef, where('userId', '==', userId));
     const querySnapshot = await getDocs(q);
 
@@ -59,32 +66,28 @@ export const getMedicinesFromFirebase = async (): Promise<Medicine[]> => {
     return medicines;
   } catch (error) {
     console.error('Error fetching medicines from Firebase:', error);
-    return [];
+    throw error;
   }
 };
 
 export const deleteMedicineFromFirebase = async (medicineId: string): Promise<boolean> => {
-  const userId = auth.currentUser?.uid;
-  if (!userId) {
-    console.warn('No authenticated user, skipping Firebase delete');
+  if (!ensureFirebase()) {
     return false;
   }
 
   try {
-    const medicineRef = doc(db, MEDICINES_COLLECTION, medicineId);
+    const medicineRef = doc(db!, MEDICINES_COLLECTION, medicineId);
     await deleteDoc(medicineRef);
     console.log('Medicine deleted from Firebase:', medicineId);
     return true;
   } catch (error) {
     console.error('Error deleting medicine from Firebase:', error);
-    return false;
+    throw error;
   }
 };
 
 export const syncMedicinesToFirebase = async (medicines: Medicine[]): Promise<boolean> => {
-  const userId = auth.currentUser?.uid;
-  if (!userId) {
-    console.warn('No authenticated user, skipping sync');
+  if (!ensureFirebase()) {
     return false;
   }
 
@@ -96,29 +99,6 @@ export const syncMedicinesToFirebase = async (medicines: Medicine[]): Promise<bo
     return true;
   } catch (error) {
     console.error('Error syncing medicines to Firebase:', error);
-    return false;
+    throw error;
   }
-};
-
-export const subscribeToMedicines = (callback: (medicines: Medicine[]) => void): Unsubscribe | null => {
-  const userId = auth.currentUser?.uid;
-  if (!userId) {
-    console.warn('No authenticated user, cannot subscribe');
-    return null;
-  }
-
-  const medicinesRef = collection(db, MEDICINES_COLLECTION);
-  const q = query(medicinesRef, where('userId', '==', userId));
-
-  return onSnapshot(q, (querySnapshot) => {
-    const medicines: Medicine[] = [];
-    querySnapshot.forEach((doc) => {
-      const data = doc.data() as Medicine & { userId: string };
-      delete (data as { userId?: string }).userId;
-      medicines.push(data);
-    });
-    callback(medicines);
-  }, (error) => {
-    console.error('Error in medicines subscription:', error);
-  });
 };

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -10,24 +10,27 @@ interface StepperProps {
   label?: string;
 }
 
-export const Stepper: React.FC<StepperProps> = ({
+export const Stepper: React.FC<StepperProps> = React.memo(({
   value,
   onChange,
   min = 1,
   max = 10,
   label,
 }) => {
-  const decrement = () => {
+  const decrement = useCallback(() => {
     if (value > min) {
       onChange(value - 1);
     }
-  };
+  }, [value, min, onChange]);
 
-  const increment = () => {
+  const increment = useCallback(() => {
     if (value < max) {
       onChange(value + 1);
     }
-  };
+  }, [value, max, onChange]);
+
+  const isAtMin = value <= min;
+  const isAtMax = value >= max;
 
   return (
     <View style={styles.container}>
@@ -35,77 +38,95 @@ export const Stepper: React.FC<StepperProps> = ({
       <View style={styles.stepperContainer}>
         <TouchableOpacity
           onPress={decrement}
-          disabled={value <= min}
-          style={[styles.button, value <= min && styles.buttonDisabled]}
+          disabled={isAtMin}
+          style={[
+            styles.button, 
+            isAtMin && styles.buttonDisabled
+          ]}
+          activeOpacity={0.7}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <MaterialCommunityIcons
             name="minus"
             size={20}
-            color={value <= min ? '#ccc' : '#fff'}
+            color={isAtMin ? '#ccc' : '#fff'}
           />
         </TouchableOpacity>
+        
         <View style={styles.valueContainer}>
           <Text style={styles.value}>{value}</Text>
         </View>
+        
         <TouchableOpacity
           onPress={increment}
-          disabled={value >= max}
-          style={[styles.button, value >= max && styles.buttonDisabled]}
+          disabled={isAtMax}
+          style={[
+            styles.button, 
+            isAtMax && styles.buttonDisabled
+          ]}
+          activeOpacity={0.7}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <MaterialCommunityIcons
             name="plus"
             size={20}
-            color={value >= max ? '#ccc' : '#fff'}
+            color={isAtMax ? '#ccc' : '#fff'}
           />
         </TouchableOpacity>
       </View>
     </View>
   );
-};
+});
+
+Stepper.displayName = 'Stepper';
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 8,
+    marginVertical: 4,
   },
   label: {
     fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
-    fontWeight: '500',
+    color: '#555',
+    marginBottom: 12,
+    fontWeight: '600',
   },
   stepperContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
   },
   button: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: '#4CAF50',
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
+    shadowColor: '#4CAF50',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
   buttonDisabled: {
     backgroundColor: '#e0e0e0',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   valueContainer: {
-    width: 60,
-    height: 44,
+    minWidth: 70,
+    height: 48,
     justifyContent: 'center',
     alignItems: 'center',
-    marginHorizontal: 12,
+    marginHorizontal: 16,
     backgroundColor: '#f5f5f5',
-    borderRadius: 8,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#e0e0e0',
   },
   value: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#333',
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#1a1a1a',
   },
 });

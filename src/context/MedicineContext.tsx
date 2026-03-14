@@ -5,6 +5,7 @@ import React, {
   useEffect,
   useCallback,
   ReactNode,
+  useMemo,
 } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Medicine, MedicineFormData } from '../types';
@@ -19,8 +20,6 @@ import { authenticateUser } from '../config/firebase';
 import {
   getToday,
   isMedicineCompleted,
-  getCompletionPercentage,
-  getDatesInRange,
 } from '../utils/dateUtils';
 import {
   scheduleMedicineReminders,
@@ -48,6 +47,7 @@ export const MedicineProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Initialize: authenticate and load data
   useEffect(() => {
@@ -55,31 +55,36 @@ export const MedicineProvider: React.FC<{ children: ReactNode }> = ({ children }
       setIsLoading(true);
 
       try {
-        // Authenticate user
-        const uid = await authenticateUser();
-        setUserId(uid);
-
-        // Load medicines from local storage first
+        // Load medicines from local storage first (fast)
         const localMedicines = await loadMedicines();
         setMedicines(localMedicines);
 
-        // If authenticated, sync with Firebase
+        // Then try to authenticate and sync with Firebase (async)
+        const uid = await authenticateUser();
+        setUserId(uid);
+
         if (uid) {
-          const firebaseMedicines = await getMedicinesFromFirebase();
-          if (firebaseMedicines.length > 0) {
-            // Merge: prefer Firebase data if conflict
-            const merged = mergeMedicines(localMedicines, firebaseMedicines);
-            setMedicines(merged);
-            await saveMedicines(merged);
-          } else if (localMedicines.length > 0) {
-            // Upload local medicines to Firebase
-            await syncMedicinesToFirebase(localMedicines);
+          try {
+            const firebaseMedicines = await getMedicinesFromFirebase();
+            if (firebaseMedicines.length > 0) {
+              // Merge: prefer Firebase data if conflict
+              const merged = mergeMedicines(localMedicines, firebaseMedicines);
+              setMedicines(merged);
+              await saveMedicines(merged);
+            } else if (localMedicines.length > 0) {
+              // Upload local medicines to Firebase
+              await syncMedicinesToFirebase(localMedicines);
+            }
+          } catch (firebaseError) {
+            // Firebase errors shouldn't block the app - data is saved locally
+            console.warn('Firebase sync failed, using local data:', firebaseError);
           }
         }
       } catch (error) {
         console.error('Initialization error:', error);
       } finally {
         setIsLoading(false);
+        setIsInitialized(true);
       }
     };
 
@@ -87,7 +92,7 @@ export const MedicineProvider: React.FC<{ children: ReactNode }> = ({ children }
   }, []);
 
   // Merge medicines from local and Firebase
-  const mergeMedicines = (local: Medicine[], firebase: Medicine[]): Medicine[] => {
+  const mergeMedicines = useCallback((local: Medicine[], firebase: Medicine[]): Medicine[] => {
     const merged: Medicine[] = [];
     const allIds = new Set([...local.map(m => m.id), ...firebase.map(m => m.id)]);
 
@@ -110,7 +115,7 @@ export const MedicineProvider: React.FC<{ children: ReactNode }> = ({ children }
     });
 
     return merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  };
+  }, []);
 
   // Create new medicine
   const createMedicine = useCallback(async (data: MedicineFormData): Promise<Medicine> => {
@@ -129,14 +134,23 @@ export const MedicineProvider: React.FC<{ children: ReactNode }> = ({ children }
       updatedAt: now,
     };
 
+    // Update state and local storage first (optimistic)
     const updatedMedicines = [newMedicine, ...medicines];
     setMedicines(updatedMedicines);
     await saveMedicines(updatedMedicines);
-    await saveMedicineToFirebase(newMedicine);
 
-    // Schedule reminders if enabled
-    if (newMedicine.remindersEnabled) {
-      await scheduleMedicineReminders(newMedicine);
+    // Try Firebase in background (don't block on failure)
+    try {
+      await saveMedicineToFirebase(newMedicine);
+    } catch (firebaseError) {
+      console.warn('Firebase save failed, medicine saved locally:', firebaseError);
+    }
+
+    // Schedule reminders if enabled (don't block)
+    if (newMedicine.remindersEnabled && newMedicine.reminderTimes?.length) {
+      scheduleMedicineReminders(newMedicine).catch(err => 
+        console.warn('Failed to schedule reminders:', err)
+      );
     }
 
     return newMedicine;
@@ -156,10 +170,18 @@ export const MedicineProvider: React.FC<{ children: ReactNode }> = ({ children }
     const updatedMedicines = medicines.map(m => (m.id === id ? updatedMedicine : m));
     setMedicines(updatedMedicines);
     await saveMedicines(updatedMedicines);
-    await saveMedicineToFirebase(updatedMedicine);
 
-    // Update reminders
-    await updateMedicineReminders(updatedMedicine);
+    // Try Firebase in background
+    try {
+      await saveMedicineToFirebase(updatedMedicine);
+    } catch (firebaseError) {
+      console.warn('Firebase update failed, changes saved locally:', firebaseError);
+    }
+
+    // Update reminders in background
+    updateMedicineReminders(updatedMedicine).catch(err =>
+      console.warn('Failed to update reminders:', err)
+    );
   }, [medicines]);
 
   // Delete medicine
@@ -167,8 +189,18 @@ export const MedicineProvider: React.FC<{ children: ReactNode }> = ({ children }
     const updatedMedicines = medicines.filter(m => m.id !== id);
     setMedicines(updatedMedicines);
     await saveMedicines(updatedMedicines);
-    await deleteMedicineFromFirebase(id);
-    await cancelMedicineReminders(id);
+
+    // Try Firebase in background
+    try {
+      await deleteMedicineFromFirebase(id);
+    } catch (firebaseError) {
+      console.warn('Firebase delete failed, medicine deleted locally:', firebaseError);
+    }
+
+    // Cancel reminders in background
+    cancelMedicineReminders(id).catch(err =>
+      console.warn('Failed to cancel reminders:', err)
+    );
   }, [medicines]);
 
   // Check a dose (increment checks for today)
@@ -199,7 +231,13 @@ export const MedicineProvider: React.FC<{ children: ReactNode }> = ({ children }
     const updatedMedicines = medicines.map(m => (m.id === id ? updatedMedicine : m));
     setMedicines(updatedMedicines);
     await saveMedicines(updatedMedicines);
-    await saveMedicineToFirebase(updatedMedicine);
+
+    // Try Firebase in background
+    try {
+      await saveMedicineToFirebase(updatedMedicine);
+    } catch (firebaseError) {
+      console.warn('Firebase check update failed, changes saved locally:', firebaseError);
+    }
   }, [medicines]);
 
   // Uncheck a dose (decrement checks for today)
@@ -225,7 +263,13 @@ export const MedicineProvider: React.FC<{ children: ReactNode }> = ({ children }
     const updatedMedicines = medicines.map(m => (m.id === id ? updatedMedicine : m));
     setMedicines(updatedMedicines);
     await saveMedicines(updatedMedicines);
-    await saveMedicineToFirebase(updatedMedicine);
+
+    // Try Firebase in background
+    try {
+      await saveMedicineToFirebase(updatedMedicine);
+    } catch (firebaseError) {
+      console.warn('Firebase uncheck update failed, changes saved locally:', firebaseError);
+    }
   }, [medicines]);
 
   // Get a single medicine by ID
@@ -246,6 +290,7 @@ export const MedicineProvider: React.FC<{ children: ReactNode }> = ({ children }
       console.log('Sync completed successfully');
     } catch (error) {
       console.error('Sync error:', error);
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -263,27 +308,41 @@ export const MedicineProvider: React.FC<{ children: ReactNode }> = ({ children }
       await saveMedicines(merged);
     } catch (error) {
       console.error('Refresh error:', error);
+      throw error;
     } finally {
       setIsLoading(false);
     }
-  }, [medicines, userId]);
+  }, [medicines, userId, mergeMedicines]);
+
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => ({
+    medicines,
+    isLoading,
+    userId,
+    createMedicine,
+    updateMedicine,
+    deleteMedicine,
+    checkMedicine,
+    uncheckMedicine,
+    getMedicine,
+    syncWithFirebase,
+    refreshMedicines,
+  }), [
+    medicines,
+    isLoading,
+    userId,
+    createMedicine,
+    updateMedicine,
+    deleteMedicine,
+    checkMedicine,
+    uncheckMedicine,
+    getMedicine,
+    syncWithFirebase,
+    refreshMedicines,
+  ]);
 
   return (
-    <MedicineContext.Provider
-      value={{
-        medicines,
-        isLoading,
-        userId,
-        createMedicine,
-        updateMedicine,
-        deleteMedicine,
-        checkMedicine,
-        uncheckMedicine,
-        getMedicine,
-        syncWithFirebase,
-        refreshMedicines,
-      }}
-    >
+    <MedicineContext.Provider value={contextValue}>
       {children}
     </MedicineContext.Provider>
   );

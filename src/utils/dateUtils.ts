@@ -90,3 +90,25 @@ export const getCompletionPercentage = (medicine: {
   if (totalRequired === 0) return 0;
   return Math.round((totalChecks / totalRequired) * 100);
 };
+
+export const getCurrentStreak = (checks: { [date: string]: number }, timesPerDay: number): number => {
+  const dates = Object.keys(checks).sort().reverse();
+  let streak = 0;
+  const today = getToday();
+  
+  for (const date of dates) {
+    if (checks[date] >= timesPerDay) {
+      // Count consecutive days with all doses taken
+      const daysDiff = Math.floor(
+        (new Date(today).getTime() - new Date(date).getTime()) / (1000 * 60 * 60 * 24)
+      );
+      if (daysDiff === streak) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+  }
+  
+  return streak;
+};

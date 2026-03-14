@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   ScrollView,
   Switch,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Stepper } from '../components/Stepper';
@@ -30,45 +31,42 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
   const [remindersEnabled, setRemindersEnabled] = useState(false);
   const [reminderTimes, setReminderTimes] = useState<string[]>(['09:00']);
   const [isSaving, setIsSaving] = useState(false);
+  const [errors, setErrors] = useState<{ name?: string }>({});
 
-  const handleAddReminderTime = () => {
+  const handleAddReminderTime = useCallback(() => {
     if (reminderTimes.length < timesPerDay) {
-      setReminderTimes([...reminderTimes, '09:00']);
+      setReminderTimes(prev => [...prev, '09:00']);
     }
-  };
+  }, [reminderTimes.length, timesPerDay]);
 
-  const handleRemoveReminderTime = (index: number) => {
-    setReminderTimes(reminderTimes.filter((_, i) => i !== index));
-  };
+  const handleRemoveReminderTime = useCallback((index: number) => {
+    setReminderTimes(prev => prev.filter((_, i) => i !== index));
+  }, []);
 
-  const handleReminderTimeChange = (index: number, time: string) => {
-    const updated = [...reminderTimes];
-    updated[index] = time;
-    setReminderTimes(updated);
-  };
+  const handleReminderTimeChange = useCallback((index: number, time: string) => {
+    setReminderTimes(prev => {
+      const updated = [...prev];
+      updated[index] = time;
+      return updated;
+    });
+  }, []);
 
-  const validate = (): boolean => {
+  const validate = useCallback((): boolean => {
+    const newErrors: { name?: string } = {};
+    
     if (!name.trim()) {
-      Alert.alert('Error', 'Please enter a medicine name');
-      return false;
+      newErrors.name = 'Please enter a medicine name';
     }
-    if (timesPerDay < 1) {
-      Alert.alert('Error', 'Times per day must be at least 1');
-      return false;
-    }
-    if (durationDays < 1) {
-      Alert.alert('Error', 'Duration must be at least 1 day');
-      return false;
-    }
-    if (remindersEnabled && reminderTimes.length === 0) {
-      Alert.alert('Error', 'Please add at least one reminder time');
-      return false;
-    }
-    return true;
-  };
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  }, [name]);
 
-  const handleSave = async () => {
-    if (!validate()) return;
+  const handleSave = useCallback(async () => {
+    if (!validate()) {
+      Alert.alert('Error', 'Please fix the errors before saving');
+      return;
+    }
 
     setIsSaving(true);
     try {
@@ -80,64 +78,110 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
         reminderTimes: remindersEnabled ? reminderTimes : undefined,
       };
 
-      await createMedicine(data);
-      navigation.goBack();
+      const newMedicine = await createMedicine(data);
+      
+      // Show success feedback
+      Alert.alert(
+        'Success',
+        `"${newMedicine.name}" has been added successfully!`,
+        [{ text: 'OK', onPress: () => navigation.goBack() }]
+      );
     } catch (error) {
       console.error('Error creating medicine:', error);
-      Alert.alert('Error', 'Failed to create medicine. Please try again.');
+      Alert.alert(
+        'Error',
+        'Failed to create medicine. Please try again.',
+        [{ text: 'OK' }]
+      );
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [name, timesPerDay, durationDays, remindersEnabled, reminderTimes, createMedicine, navigation, validate]);
+
+  const handleTimesPerDayChange = useCallback((value: number) => {
+    setTimesPerDay(value);
+    // Adjust reminder times if needed
+    setReminderTimes(prev => {
+      if (value < prev.length) {
+        return prev.slice(0, value);
+      }
+      return prev;
+    });
+  }, []);
+
+  // Memoize form validity
+  const isFormValid = useMemo(() => {
+    return name.trim().length > 0 && timesPerDay >= 1 && durationDays >= 1;
+  }, [name, timesPerDay, durationDays]);
 
   return (
-    <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
+    <ScrollView 
+      style={styles.container} 
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={styles.contentContainer}
+    >
       <View style={styles.form}>
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Medicine Name *</Text>
-          <TextInput
-            style={styles.input}
-            value={name}
-            onChangeText={setName}
-            placeholder="e.g., Vitamin D, Ibuprofen"
-            maxLength={50}
-          />
+        {/* Medicine Name */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Medicine Details</Text>
+          
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Name *</Text>
+            <TextInput
+              style={[styles.input, errors.name && styles.inputError]}
+              value={name}
+              onChangeText={(text) => {
+                setName(text);
+                if (errors.name) setErrors({});
+              }}
+              placeholder="e.g., Vitamin D, Ibuprofen"
+              maxLength={50}
+              autoFocus
+            />
+            {errors.name && (
+              <Text style={styles.errorText}>{errors.name}</Text>
+            )}
+            <Text style={styles.characterCount}>{name.length}/50</Text>
+          </View>
         </View>
 
-        <View style={styles.inputGroup}>
-          <Stepper
-            label="Times per day"
-            value={timesPerDay}
-            onChange={(value) => {
-              setTimesPerDay(value);
-              // Adjust reminder times if needed
-              if (value < reminderTimes.length) {
-                setReminderTimes(reminderTimes.slice(0, value));
-              }
-            }}
-            min={1}
-            max={10}
-          />
+        {/* Schedule */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Schedule</Text>
+          
+          <View style={styles.stepperRow}>
+            <Stepper
+              label="Times per day"
+              value={timesPerDay}
+              onChange={handleTimesPerDayChange}
+              min={1}
+              max={10}
+            />
+          </View>
+
+          <View style={styles.stepperRow}>
+            <Stepper
+              label="Duration (days)"
+              value={durationDays}
+              onChange={setDurationDays}
+              min={1}
+              max={365}
+            />
+          </View>
         </View>
 
-        <View style={styles.inputGroup}>
-          <Stepper
-            label="Duration (days)"
-            value={durationDays}
-            onChange={setDurationDays}
-            min={1}
-            max={365}
-          />
-        </View>
-
-        <View style={styles.inputGroup}>
+        {/* Reminders */}
+        <View style={styles.card}>
           <View style={styles.reminderHeader}>
-            <Text style={styles.label}>Reminders</Text>
+            <View>
+              <Text style={styles.cardTitle}>Reminders</Text>
+              <Text style={styles.reminderSubtitle}>Get notified when it's time</Text>
+            </View>
             <Switch
               value={remindersEnabled}
               onValueChange={setRemindersEnabled}
-              trackColor={{ false: '#767577', true: '#81c784' }}
-              thumbColor={remindersEnabled ? '#4CAF50' : '#f4f3f4'}
+              trackColor={{ false: '#e0e0e0', true: '#81c784' }}
+              thumbColor={remindersEnabled ? '#4CAF50' : '#fff'}
             />
           </View>
 
@@ -145,19 +189,24 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
             <View style={styles.reminderTimesContainer}>
               {reminderTimes.map((time, index) => (
                 <View key={index} style={styles.reminderTimeRow}>
-                  <TextInput
-                    style={styles.timeInput}
-                    value={time}
-                    onChangeText={(text) => handleReminderTimeChange(index, text)}
-                    placeholder="HH:MM"
-                    maxLength={5}
-                  />
+                  <View style={styles.timeInputContainer}>
+                    <MaterialCommunityIcons name="clock-outline" size={20} color="#666" />
+                    <TextInput
+                      style={styles.timeInput}
+                      value={time}
+                      onChangeText={(text) => handleReminderTimeChange(index, text)}
+                      placeholder="HH:MM"
+                      maxLength={5}
+                      keyboardType="numbers-and-punctuation"
+                    />
+                  </View>
                   {reminderTimes.length > 1 && (
                     <TouchableOpacity
                       onPress={() => handleRemoveReminderTime(index)}
                       style={styles.removeTimeButton}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                     >
-                      <MaterialCommunityIcons name="close" size={20} color="#f44336" />
+                      <MaterialCommunityIcons name="close-circle" size={24} color="#f44336" />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -167,8 +216,11 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
                 <TouchableOpacity
                   style={styles.addTimeButton}
                   onPress={handleAddReminderTime}
+                  activeOpacity={0.7}
                 >
-                  <MaterialCommunityIcons name="plus" size={16} color="#4CAF50" />
+                  <View style={styles.addTimeIcon}>
+                    <MaterialCommunityIcons name="plus" size={16} color="#fff" />
+                  </View>
                   <Text style={styles.addTimeText}>Add reminder time</Text>
                 </TouchableOpacity>
               )}
@@ -176,14 +228,21 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
           )}
         </View>
 
+        {/* Save Button */}
         <TouchableOpacity
-          style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
+          style={[
+            styles.saveButton, 
+            (!isFormValid || isSaving) && styles.saveButtonDisabled
+          ]}
           onPress={handleSave}
-          disabled={isSaving}
+          disabled={!isFormValid || isSaving}
+          activeOpacity={0.8}
         >
-          <Text style={styles.saveButtonText}>
-            {isSaving ? 'Saving...' : 'Create Medicine'}
-          </Text>
+          {isSaving ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.saveButtonText}>Create Medicine</Text>
+          )}
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -193,85 +252,146 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f8f9fa',
+  },
+  contentContainer: {
+    paddingBottom: 32,
   },
   form: {
     padding: 16,
   },
-  inputGroup: {
-    marginBottom: 20,
+  card: {
     backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 8,
-    elevation: 1,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1a1a1a',
+    marginBottom: 16,
+  },
+  inputGroup: {
+    marginBottom: 8,
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
+    color: '#555',
     marginBottom: 8,
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderWidth: 1.5,
+    borderColor: '#e0e0e0',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     fontSize: 16,
+    backgroundColor: '#fafafa',
+  },
+  inputError: {
+    borderColor: '#f44336',
+    backgroundColor: '#fff5f5',
+  },
+  errorText: {
+    fontSize: 12,
+    color: '#f44336',
+    marginTop: 6,
+  },
+  characterCount: {
+    fontSize: 12,
+    color: '#999',
+    textAlign: 'right',
+    marginTop: 6,
+  },
+  stepperRow: {
+    marginBottom: 16,
   },
   reminderHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+  },
+  reminderSubtitle: {
+    fontSize: 13,
+    color: '#888',
+    marginTop: -12,
+    marginBottom: 16,
   },
   reminderTimesContainer: {
-    marginTop: 12,
+    marginTop: 8,
   },
   reminderTimeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
+  },
+  timeInputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#e0e0e0',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#fafafa',
   },
   timeInput: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 12,
+    paddingLeft: 12,
     fontSize: 16,
   },
   removeTimeButton: {
-    marginLeft: 8,
+    marginLeft: 12,
     padding: 4,
   },
   addTimeButton: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 8,
+    marginTop: 4,
+  },
+  addTimeIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#4CAF50',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
   },
   addTimeText: {
-    marginLeft: 4,
+    fontSize: 15,
     color: '#4CAF50',
-    fontWeight: '500',
+    fontWeight: '600',
   },
   saveButton: {
     backgroundColor: '#4CAF50',
-    paddingVertical: 14,
-    borderRadius: 8,
+    paddingVertical: 18,
+    borderRadius: 16,
     alignItems: 'center',
     marginTop: 8,
+    shadowColor: '#4CAF50',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   saveButtonDisabled: {
     backgroundColor: '#a5d6a7',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   saveButtonText: {
     color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
   },
 });
