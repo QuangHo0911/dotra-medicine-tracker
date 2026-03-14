@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Stepper } from '../components/Stepper';
+import { TimePickerModal } from '../components/TimePickerModal';
 import { useMedicine } from '../context/MedicineContext';
 import { MedicineFormData, RootStackParamList } from '../types';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -30,6 +31,8 @@ export const EditMedicineScreen: React.FC<EditMedicineScreenProps> = ({ route, n
   const [reminderTimes, setReminderTimes] = useState<string[]>(['09:00']);
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<{ name?: string }>({});
+  const [timePickerVisible, setTimePickerVisible] = useState(false);
+  const [editingTimeIndex, setEditingTimeIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (medicine) {
@@ -74,6 +77,23 @@ export const EditMedicineScreen: React.FC<EditMedicineScreenProps> = ({ route, n
       updated[index] = time;
       return updated;
     });
+  }, []);
+
+  const handleTimePress = useCallback((index: number) => {
+    setEditingTimeIndex(index);
+    setTimePickerVisible(true);
+  }, []);
+
+  const handleTimeConfirm = useCallback((time: string) => {
+    if (editingTimeIndex !== null) {
+      handleReminderTimeChange(editingTimeIndex, time);
+    }
+    setEditingTimeIndex(null);
+  }, [editingTimeIndex, handleReminderTimeChange]);
+
+  const handleTimePickerClose = useCallback(() => {
+    setTimePickerVisible(false);
+    setEditingTimeIndex(null);
   }, []);
 
   const validate = useCallback((): boolean => {
@@ -205,6 +225,8 @@ export const EditMedicineScreen: React.FC<EditMedicineScreenProps> = ({ route, n
               onChange={setDurationDays}
               min={1}
               max={365}
+              upgradeMessage="Maximum duration is 365 days. Upgrade for longer tracking."
+              showUpgrade={true}
             />
           </View>
         </View>
@@ -228,17 +250,14 @@ export const EditMedicineScreen: React.FC<EditMedicineScreenProps> = ({ route, n
             <View style={styles.reminderTimesContainer}>
               {reminderTimes.map((time, index) => (
                 <View key={index} style={styles.reminderTimeRow}>
-                  <View style={styles.timeInputContainer}>
+                  <TouchableOpacity
+                    style={styles.timeDisplayContainer}
+                    onPress={() => handleTimePress(index)}
+                    activeOpacity={0.7}
+                  >
                     <MaterialCommunityIcons name="clock-outline" size={20} color="#666" />
-                    <TextInput
-                      style={styles.timeInput}
-                      value={time}
-                      onChangeText={(text) => handleReminderTimeChange(index, text)}
-                      placeholder="HH:MM"
-                      maxLength={5}
-                      keyboardType="numbers-and-punctuation"
-                    />
-                  </View>
+                    <Text style={styles.timeDisplayText}>{time}</Text>
+                  </TouchableOpacity>
                   {reminderTimes.length > 1 && (
                     <TouchableOpacity
                       onPress={() => handleRemoveReminderTime(index)}
@@ -294,6 +313,13 @@ export const EditMedicineScreen: React.FC<EditMedicineScreenProps> = ({ route, n
           <Text style={styles.deleteButtonText}>Delete Medicine</Text>
         </TouchableOpacity>
       </View>
+
+      <TimePickerModal
+        visible={timePickerVisible}
+        onClose={handleTimePickerClose}
+        onConfirm={handleTimeConfirm}
+        initialTime={editingTimeIndex !== null ? reminderTimes[editingTimeIndex] : '09:00'}
+      />
     </ScrollView>
   );
 };
@@ -387,7 +413,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  timeInputContainer: {
+  timeDisplayContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
@@ -395,13 +421,15 @@ const styles = StyleSheet.create({
     borderColor: '#e0e0e0',
     borderRadius: 12,
     paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: '#fafafa',
   },
-  timeInput: {
+  timeDisplayText: {
     flex: 1,
-    paddingVertical: 12,
-    paddingLeft: 12,
+    marginLeft: 12,
     fontSize: 16,
+    color: '#1a1a1a',
+    fontWeight: '500',
   },
   removeTimeButton: {
     marginLeft: 12,
