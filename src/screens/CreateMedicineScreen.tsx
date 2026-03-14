@@ -34,7 +34,7 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
   const [reminderTimes, setReminderTimes] = useState<string[]>(['09:00']);
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<{ name?: string }>({});
-  const [timePickerVisible, setTimePickerVisible] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [editingTimeIndex, setEditingTimeIndex] = useState<number | null>(null);
 
   const handleAddReminderTime = useCallback(() => {
@@ -57,20 +57,14 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
 
   const handleTimePress = useCallback((index: number) => {
     setEditingTimeIndex(index);
-    setTimePickerVisible(true);
+    setShowTimePicker(true);
   }, []);
 
   const handleTimeConfirm = useCallback((time: string) => {
     if (editingTimeIndex !== null) {
       handleReminderTimeChange(editingTimeIndex, time);
     }
-    setEditingTimeIndex(null);
   }, [editingTimeIndex, handleReminderTimeChange]);
-
-  const handleTimePickerClose = useCallback(() => {
-    setTimePickerVisible(false);
-    setEditingTimeIndex(null);
-  }, []);
 
   const validate = useCallback((): boolean => {
     const newErrors: { name?: string } = {};
@@ -256,9 +250,13 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
 
       </View>
 
+      {/* Time Picker Modal */}
       <TimePickerModal
-        visible={timePickerVisible}
-        onClose={handleTimePickerClose}
+        visible={showTimePicker}
+        onClose={() => {
+          setShowTimePicker(false);
+          setEditingTimeIndex(null);
+        }}
         onConfirm={handleTimeConfirm}
         initialTime={editingTimeIndex !== null ? reminderTimes[editingTimeIndex] : '09:00'}
       />

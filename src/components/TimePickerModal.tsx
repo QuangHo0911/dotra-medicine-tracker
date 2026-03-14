@@ -1,14 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
+  Text,
   TouchableOpacity,
   Modal,
+  StyleSheet,
   Dimensions,
-  FlatList,
 } from 'react-native';
-import { Text } from './ui/Text';
-import { Button } from './ui/Button';
-import { cn } from '../utils/cn';
+import { Picker } from '@react-native-picker/picker';
 
 interface TimePickerModalProps {
   visible: boolean;
@@ -18,17 +17,6 @@ interface TimePickerModalProps {
 }
 
 const { width } = Dimensions.get('window');
-const ITEM_HEIGHT = 44;
-const VISIBLE_ITEMS = 5;
-
-// Generate 10 copies of 0-23 for hours (total 240 items)
-const hourOptions = Array.from({ length: 240 }, (_, i) => i % 24);
-// Generate 10 copies of 0-59 for minutes (total 600 items)
-const minuteOptions = Array.from({ length: 600 }, (_, i) => i % 60);
-
-// Calculate initial indices (start at middle copy - 5th)
-const getInitialHourIndex = (hour: number) => 120 + hour; // 5*24 + hour
-const getInitialMinuteIndex = (minute: number) => 300 + minute; // 5*60 + minute
 
 export const TimePickerModal: React.FC<TimePickerModalProps> = ({
   visible,
@@ -38,22 +26,13 @@ export const TimePickerModal: React.FC<TimePickerModalProps> = ({
 }) => {
   const [hours, setHours] = useState(9);
   const [minutes, setMinutes] = useState(0);
-  const [selectedHourIndex, setSelectedHourIndex] = useState(0);
-  const [selectedMinuteIndex, setSelectedMinuteIndex] = useState(0);
-
-  const hourListRef = useRef<FlatList>(null);
-  const minuteListRef = useRef<FlatList>(null);
 
   // Parse initial time when modal opens
   useEffect(() => {
     if (visible && initialTime) {
       const [h, m] = initialTime.split(':').map(Number);
-      const hour = isNaN(h) ? 9 : h;
-      const minute = isNaN(m) ? 0 : m;
-      setHours(hour);
-      setMinutes(minute);
-      setSelectedHourIndex(getInitialHourIndex(hour));
-      setSelectedMinuteIndex(getInitialMinuteIndex(minute));
+      setHours(isNaN(h) ? 9 : h);
+      setMinutes(isNaN(m) ? 0 : m);
     }
   }, [visible, initialTime]);
 
@@ -67,65 +46,10 @@ export const TimePickerModal: React.FC<TimePickerModalProps> = ({
     onClose();
   };
 
-  const handleHourChange = (index: number) => {
-    setSelectedHourIndex(index);
-    setHours(hourOptions[index]);
-  };
-
-  const handleMinuteChange = (index: number) => {
-    setSelectedMinuteIndex(index);
-    setMinutes(minuteOptions[index]);
-  };
-
-  const renderHourItem = ({ item, index }: { item: number; index: number }) => {
-    const isSelected = index === selectedHourIndex;
-    return (
-      <TouchableOpacity
-        className={cn(
-          "h-11 justify-center items-center",
-          isSelected && "bg-background-input rounded-lg"
-        )}
-        onPress={() => {
-          handleHourChange(index);
-          hourListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
-        }}
-      >
-        <Text
-          className={cn(
-            "text-xl font-semibold",
-            isSelected ? "text-text font-bold" : "text-text-muted"
-          )}
-        >
-          {item.toString().padStart(2, '0')}
-        </Text>
-      </TouchableOpacity>
-    );
-  };
-
-  const renderMinuteItem = ({ item, index }: { item: number; index: number }) => {
-    const isSelected = index === selectedMinuteIndex;
-    return (
-      <TouchableOpacity
-        className={cn(
-          "h-11 justify-center items-center",
-          isSelected && "bg-background-input rounded-lg"
-        )}
-        onPress={() => {
-          handleMinuteChange(index);
-          minuteListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
-        }}
-      >
-        <Text
-          className={cn(
-            "text-xl font-semibold",
-            isSelected ? "text-text font-bold" : "text-text-muted"
-          )}
-        >
-          {item.toString().padStart(2, '0')}
-        </Text>
-      </TouchableOpacity>
-    );
-  };
+  // Generate hour options (00-23)
+  const hourOptions = Array.from({ length: 24 }, (_, i) => i);
+  // Generate minute options (00-59)
+  const minuteOptions = Array.from({ length: 60 }, (_, i) => i);
 
   return (
     <Modal
@@ -134,100 +58,149 @@ export const TimePickerModal: React.FC<TimePickerModalProps> = ({
       animationType="fade"
       onRequestClose={handleCancel}
     >
-      <View className="flex-1 bg-black/50 justify-center items-center p-5">
-        <View
-          className="bg-background-card rounded-2xl p-6 items-center"
-          style={{ width: Math.min(width - 40, 320) }}
-        >
-          <Text variant="h4" className="mb-5">Select Time</Text>
+      <View style={styles.overlay}>
+        <View style={styles.container}>
+          <Text style={styles.title}>Select Time</Text>
 
-          <View
-            className="flex-row items-center justify-center mb-5"
-            style={{ height: ITEM_HEIGHT * VISIBLE_ITEMS }}
-          >
+          <View style={styles.pickersContainer}>
             {/* Hours Picker */}
-            <View className="items-center w-[100px] overflow-hidden" style={{ height: ITEM_HEIGHT * VISIBLE_ITEMS }}>
-              <FlatList
-                ref={hourListRef}
-                data={hourOptions}
-                renderItem={renderHourItem}
-                keyExtractor={(_, index) => `hour-${index}`}
-                showsVerticalScrollIndicator={false}
-                snapToInterval={ITEM_HEIGHT}
-                decelerationRate="fast"
-                getItemLayout={(_, index) => ({
-                  length: ITEM_HEIGHT,
-                  offset: ITEM_HEIGHT * index,
-                  index,
-                })}
-                onMomentumScrollEnd={(event) => {
-                  const y = event.nativeEvent.contentOffset.y;
-                  const index = Math.round(y / ITEM_HEIGHT);
-                  handleHourChange(index);
-                }}
-                contentContainerStyle={{
-                  paddingVertical: ITEM_HEIGHT * ((VISIBLE_ITEMS - 1) / 2),
-                }}
-                initialScrollIndex={selectedHourIndex}
-                className="w-[100px]"
-                style={{ height: ITEM_HEIGHT * VISIBLE_ITEMS }}
-              />
+            <View style={styles.pickerWrapper}>
+              <Picker
+                selectedValue={hours}
+                onValueChange={(value) => setHours(value as number)}
+                style={styles.picker}
+                itemStyle={styles.pickerItem}
+              >
+                {hourOptions.map((hour) => (
+                  <Picker.Item
+                    key={hour}
+                    label={hour.toString().padStart(2, '0')}
+                    value={hour}
+                  />
+                ))}
+              </Picker>
             </View>
 
             {/* Separator */}
-            <Text className="text-2xl font-bold text-text mx-2 mb-2.5">:</Text>
+            <Text style={styles.separator}>:</Text>
 
             {/* Minutes Picker */}
-            <View className="items-center w-[100px] overflow-hidden" style={{ height: ITEM_HEIGHT * VISIBLE_ITEMS }}>
-              <FlatList
-                ref={minuteListRef}
-                data={minuteOptions}
-                renderItem={renderMinuteItem}
-                keyExtractor={(_, index) => `minute-${index}`}
-                showsVerticalScrollIndicator={false}
-                snapToInterval={ITEM_HEIGHT}
-                decelerationRate="fast"
-                getItemLayout={(_, index) => ({
-                  length: ITEM_HEIGHT,
-                  offset: ITEM_HEIGHT * index,
-                  index,
-                })}
-                onMomentumScrollEnd={(event) => {
-                  const y = event.nativeEvent.contentOffset.y;
-                  const index = Math.round(y / ITEM_HEIGHT);
-                  handleMinuteChange(index);
-                }}
-                contentContainerStyle={{
-                  paddingVertical: ITEM_HEIGHT * ((VISIBLE_ITEMS - 1) / 2),
-                }}
-                initialScrollIndex={selectedMinuteIndex}
-                className="w-[100px]"
-                style={{ height: ITEM_HEIGHT * VISIBLE_ITEMS }}
-              />
+            <View style={styles.pickerWrapper}>
+              <Picker
+                selectedValue={minutes}
+                onValueChange={(value) => setMinutes(value as number)}
+                style={styles.picker}
+                itemStyle={styles.pickerItem}
+              >
+                {minuteOptions.map((minute) => (
+                  <Picker.Item
+                    key={minute}
+                    label={minute.toString().padStart(2, '0')}
+                    value={minute}
+                  />
+                ))}
+              </Picker>
             </View>
           </View>
 
-          <View className="flex-row justify-between w-full">
-            <Button
-              variant="secondary"
-              size="md"
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
               onPress={handleCancel}
-              className="flex-1 mr-2"
+              style={[styles.button, styles.cancelButton]}
+              activeOpacity={0.7}
             >
-              Cancel
-            </Button>
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
 
-            <Button
-              variant="primary"
-              size="md"
+            <TouchableOpacity
               onPress={handleConfirm}
-              className="flex-1 ml-2"
+              style={[styles.button, styles.confirmButton]}
+              activeOpacity={0.7}
             >
-              Done
-            </Button>
+              <Text style={styles.confirmButtonText}>Done</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </View>
     </Modal>
   );
 };
+
+const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  container: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+    width: Math.min(width - 40, 320),
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1a1a1a',
+    marginBottom: 20,
+  },
+  pickersContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 200,
+    marginBottom: 20,
+  },
+  pickerWrapper: {
+    alignItems: 'center',
+    width: 100,
+  },
+  picker: {
+    width: 100,
+    height: 180,
+  },
+  pickerItem: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1a1a1a',
+  },
+  separator: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1a1a1a',
+    marginHorizontal: 8,
+    marginBottom: 20,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  button: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#f5f5f5',
+    marginRight: 8,
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666',
+  },
+  confirmButton: {
+    backgroundColor: '#4CAF50',
+    marginLeft: 8,
+  },
+  confirmButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
+  },
+});
