@@ -10,7 +10,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { AlertCircle, Clock, XCircle, Plus, Trash2 } from 'lucide-react-native';
 import { Stepper } from '../components/Stepper';
 import { TimePickerModal } from '../components/TimePickerModal';
 import { useMedicine } from '../context/MedicineContext';
@@ -48,7 +48,7 @@ export const EditMedicineScreen: React.FC<EditMedicineScreenProps> = ({ route, n
     return (
       <View style={styles.container}>
         <View style={styles.notFoundContainer}>
-          <MaterialCommunityIcons name="alert-circle" size={64} color="#f44336" />
+          <AlertCircle size={64} color="#f44336" />
           <Text style={styles.notFoundErrorText}>Medicine not found</Text>
           <TouchableOpacity
             style={styles.goBackButton}
@@ -224,8 +224,8 @@ export const EditMedicineScreen: React.FC<EditMedicineScreenProps> = ({ route, n
               value={durationDays}
               onChange={setDurationDays}
               min={1}
-              max={365}
-              upgradeMessage="Maximum duration is 365 days. Upgrade for longer tracking."
+              max={7}
+              upgradeMessage="Maximum duration is 7 days. Upgrade for longer tracking."
               showUpgrade={true}
             />
           </View>
@@ -255,7 +255,7 @@ export const EditMedicineScreen: React.FC<EditMedicineScreenProps> = ({ route, n
                     onPress={() => handleTimePress(index)}
                     activeOpacity={0.7}
                   >
-                    <MaterialCommunityIcons name="clock-outline" size={20} color="#666" />
+                    <Clock size={20} color="#666" />
                     <Text style={styles.timeDisplayText}>{time}</Text>
                   </TouchableOpacity>
                   {reminderTimes.length > 1 && (
@@ -264,7 +264,7 @@ export const EditMedicineScreen: React.FC<EditMedicineScreenProps> = ({ route, n
                       style={styles.removeTimeButton}
                       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                     >
-                      <MaterialCommunityIcons name="close-circle" size={24} color="#f44336" />
+                      <XCircle size={24} color="#f44336" />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -277,7 +277,7 @@ export const EditMedicineScreen: React.FC<EditMedicineScreenProps> = ({ route, n
                   activeOpacity={0.7}
                 >
                   <View style={styles.addTimeIcon}>
-                    <MaterialCommunityIcons name="plus" size={16} color="#fff" />
+                    <Plus size={16} color="#fff" />
                   </View>
                   <Text style={styles.addTimeText}>Add reminder time</Text>
                 </TouchableOpacity>
@@ -309,7 +309,7 @@ export const EditMedicineScreen: React.FC<EditMedicineScreenProps> = ({ route, n
           onPress={handleDelete}
           activeOpacity={0.7}
         >
-          <MaterialCommunityIcons name="delete-outline" size={20} color="#f44336" />
+          <Trash2 size={20} color="#f44336" />
           <Text style={styles.deleteButtonText}>Delete Medicine</Text>
         </TouchableOpacity>
       </View>

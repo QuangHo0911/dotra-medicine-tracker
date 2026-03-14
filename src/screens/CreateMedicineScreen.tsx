@@ -10,7 +10,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Clock, XCircle, Plus } from 'lucide-react-native';
 import { Stepper } from '../components/Stepper';
 import { TimePickerModal } from '../components/TimePickerModal';
 import { useMedicine } from '../context/MedicineContext';
@@ -185,8 +185,8 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
               value={durationDays}
               onChange={setDurationDays}
               min={1}
-              max={365}
-              upgradeMessage="Maximum duration is 365 days. Upgrade for longer tracking."
+              max={7}
+              upgradeMessage="Maximum duration is 7 days. Upgrade for longer tracking."
               showUpgrade={true}
             />
           </View>
@@ -216,7 +216,7 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
                     onPress={() => handleTimePress(index)}
                     activeOpacity={0.7}
                   >
-                    <MaterialCommunityIcons name="clock-outline" size={20} color="#666" />
+                    <Clock size={20} color="#666" />
                     <Text style={styles.timeDisplayText}>{time}</Text>
                   </TouchableOpacity>
                   {reminderTimes.length > 1 && (
@@ -225,7 +225,7 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
                       style={styles.removeTimeButton}
                       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                     >
-                      <MaterialCommunityIcons name="close-circle" size={24} color="#f44336" />
+                      <XCircle size={24} color="#f44336" />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -238,7 +238,7 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
                   activeOpacity={0.7}
                 >
                   <View style={styles.addTimeIcon}>
-                    <MaterialCommunityIcons name="plus" size={16} color="#fff" />
+                    <Plus size={16} color="#fff" />
                   </View>
                   <Text style={styles.addTimeText}>Add reminder time</Text>
                 </TouchableOpacity>

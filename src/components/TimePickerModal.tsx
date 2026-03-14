@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,8 +6,8 @@ import {
   Modal,
   StyleSheet,
   Dimensions,
+  FlatList,
 } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
 
 interface TimePickerModalProps {
   visible: boolean;
@@ -17,6 +17,17 @@ interface TimePickerModalProps {
 }
 
 const { width } = Dimensions.get('window');
+const ITEM_HEIGHT = 44;
+const VISIBLE_ITEMS = 5;
+
+// Generate 10 copies of 0-23 for hours (total 240 items)
+const hourOptions = Array.from({ length: 240 }, (_, i) => i % 24);
+// Generate 10 copies of 0-59 for minutes (total 600 items)
+const minuteOptions = Array.from({ length: 600 }, (_, i) => i % 60);
+
+// Calculate initial indices (start at middle copy - 5th)
+const getInitialHourIndex = (hour: number) => 120 + hour; // 5*24 + hour
+const getInitialMinuteIndex = (minute: number) => 300 + minute; // 5*60 + minute
 
 export const TimePickerModal: React.FC<TimePickerModalProps> = ({
   visible,
@@ -26,13 +37,22 @@ export const TimePickerModal: React.FC<TimePickerModalProps> = ({
 }) => {
   const [hours, setHours] = useState(9);
   const [minutes, setMinutes] = useState(0);
+  const [selectedHourIndex, setSelectedHourIndex] = useState(0);
+  const [selectedMinuteIndex, setSelectedMinuteIndex] = useState(0);
+
+  const hourListRef = useRef<FlatList>(null);
+  const minuteListRef = useRef<FlatList>(null);
 
   // Parse initial time when modal opens
   useEffect(() => {
     if (visible && initialTime) {
       const [h, m] = initialTime.split(':').map(Number);
-      setHours(isNaN(h) ? 9 : h);
-      setMinutes(isNaN(m) ? 0 : m);
+      const hour = isNaN(h) ? 9 : h;
+      const minute = isNaN(m) ? 0 : m;
+      setHours(hour);
+      setMinutes(minute);
+      setSelectedHourIndex(getInitialHourIndex(hour));
+      setSelectedMinuteIndex(getInitialMinuteIndex(minute));
     }
   }, [visible, initialTime]);
 
@@ -46,10 +66,49 @@ export const TimePickerModal: React.FC<TimePickerModalProps> = ({
     onClose();
   };
 
-  // Generate hour options (00-23)
-  const hourOptions = Array.from({ length: 24 }, (_, i) => i);
-  // Generate minute options (00-59)
-  const minuteOptions = Array.from({ length: 60 }, (_, i) => i);
+  const handleHourChange = (index: number) => {
+    setSelectedHourIndex(index);
+    setHours(hourOptions[index]);
+  };
+
+  const handleMinuteChange = (index: number) => {
+    setSelectedMinuteIndex(index);
+    setMinutes(minuteOptions[index]);
+  };
+
+  const renderHourItem = ({ item, index }: { item: number; index: number }) => {
+    const isSelected = index === selectedHourIndex;
+    return (
+      <TouchableOpacity
+        style={[styles.timeItem, isSelected && styles.timeItemSelected]}
+        onPress={() => {
+          handleHourChange(index);
+          hourListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
+        }}
+      >
+        <Text style={[styles.timeItemText, isSelected && styles.timeItemTextSelected]}>
+          {item.toString().padStart(2, '0')}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderMinuteItem = ({ item, index }: { item: number; index: number }) => {
+    const isSelected = index === selectedMinuteIndex;
+    return (
+      <TouchableOpacity
+        style={[styles.timeItem, isSelected && styles.timeItemSelected]}
+        onPress={() => {
+          handleMinuteChange(index);
+          minuteListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
+        }}
+      >
+        <Text style={[styles.timeItemText, isSelected && styles.timeItemTextSelected]}>
+          {item.toString().padStart(2, '0')}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <Modal
@@ -65,21 +124,30 @@ export const TimePickerModal: React.FC<TimePickerModalProps> = ({
           <View style={styles.pickersContainer}>
             {/* Hours Picker */}
             <View style={styles.pickerWrapper}>
-              <Picker
-                selectedValue={hours}
-                onValueChange={(value) => setHours(value as number)}
-                style={styles.picker}
-                itemStyle={styles.pickerItem}
-              >
-                {hourOptions.map((hour) => (
-                  <Picker.Item
-                    key={hour}
-                    label={hour.toString().padStart(2, '0')}
-                    value={hour}
-                  />
-                ))}
-              </Picker>
-              <Text style={styles.label}>Hours</Text>
+              <FlatList
+                ref={hourListRef}
+                data={hourOptions}
+                renderItem={renderHourItem}
+                keyExtractor={(_, index) => `hour-${index}`}
+                showsVerticalScrollIndicator={false}
+                snapToInterval={ITEM_HEIGHT}
+                decelerationRate="fast"
+                getItemLayout={(_, index) => ({
+                  length: ITEM_HEIGHT,
+                  offset: ITEM_HEIGHT * index,
+                  index,
+                })}
+                onMomentumScrollEnd={(event) => {
+                  const y = event.nativeEvent.contentOffset.y;
+                  const index = Math.round(y / ITEM_HEIGHT);
+                  handleHourChange(index);
+                }}
+                contentContainerStyle={{
+                  paddingVertical: ITEM_HEIGHT * ((VISIBLE_ITEMS - 1) / 2),
+                }}
+                initialScrollIndex={selectedHourIndex}
+                style={styles.flatList}
+              />
             </View>
 
             {/* Separator */}
@@ -87,21 +155,30 @@ export const TimePickerModal: React.FC<TimePickerModalProps> = ({
 
             {/* Minutes Picker */}
             <View style={styles.pickerWrapper}>
-              <Picker
-                selectedValue={minutes}
-                onValueChange={(value) => setMinutes(value as number)}
-                style={styles.picker}
-                itemStyle={styles.pickerItem}
-              >
-                {minuteOptions.map((minute) => (
-                  <Picker.Item
-                    key={minute}
-                    label={minute.toString().padStart(2, '0')}
-                    value={minute}
-                  />
-                ))}
-              </Picker>
-              <Text style={styles.label}>Minutes</Text>
+              <FlatList
+                ref={minuteListRef}
+                data={minuteOptions}
+                renderItem={renderMinuteItem}
+                keyExtractor={(_, index) => `minute-${index}`}
+                showsVerticalScrollIndicator={false}
+                snapToInterval={ITEM_HEIGHT}
+                decelerationRate="fast"
+                getItemLayout={(_, index) => ({
+                  length: ITEM_HEIGHT,
+                  offset: ITEM_HEIGHT * index,
+                  index,
+                })}
+                onMomentumScrollEnd={(event) => {
+                  const y = event.nativeEvent.contentOffset.y;
+                  const index = Math.round(y / ITEM_HEIGHT);
+                  handleMinuteChange(index);
+                }}
+                contentContainerStyle={{
+                  paddingVertical: ITEM_HEIGHT * ((VISIBLE_ITEMS - 1) / 2),
+                }}
+                initialScrollIndex={selectedMinuteIndex}
+                style={styles.flatList}
+              />
             </View>
           </View>
 
@@ -153,33 +230,43 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    height: 200,
+    height: ITEM_HEIGHT * VISIBLE_ITEMS,
     marginBottom: 20,
   },
   pickerWrapper: {
     alignItems: 'center',
     width: 100,
+    height: ITEM_HEIGHT * VISIBLE_ITEMS,
+    overflow: 'hidden',
   },
-  picker: {
+  flatList: {
     width: 100,
-    height: 180,
+    height: ITEM_HEIGHT * VISIBLE_ITEMS,
   },
-  pickerItem: {
+  timeItem: {
+    height: ITEM_HEIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  timeItemSelected: {
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+  },
+  timeItemText: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#1a1a1a',
+    color: '#999',
   },
-  label: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: -10,
+  timeItemTextSelected: {
+    color: '#1a1a1a',
+    fontWeight: '700',
   },
   separator: {
     fontSize: 24,
     fontWeight: '700',
     color: '#1a1a1a',
     marginHorizontal: 8,
-    marginBottom: 20,
+    marginBottom: 10,
   },
   buttonContainer: {
     flexDirection: 'row',

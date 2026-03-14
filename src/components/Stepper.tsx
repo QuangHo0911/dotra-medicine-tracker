@@ -7,7 +7,7 @@ import {
   StyleSheet,
   Alert,
 } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Minus, Plus, AlertCircle, ChevronRight } from 'lucide-react-native';
 
 interface StepperProps {
   value: number;
@@ -58,7 +58,17 @@ export const Stepper: React.FC<StepperProps> = React.memo(({
     // Allow only numeric characters
     const numericValue = text.replace(/[^0-9]/g, '');
     setInputValue(numericValue);
-  }, []);
+
+    // Show upgrade warning while typing if exceeds max
+    if (showUpgrade && upgradeMessage) {
+      const num = parseInt(numericValue, 10);
+      if (!isNaN(num) && num > max) {
+        setShowUpgradeCallout(true);
+      } else {
+        setShowUpgradeCallout(false);
+      }
+    }
+  }, [showUpgrade, upgradeMessage, max]);
 
   const handleInputBlur = useCallback(() => {
     setIsEditing(false);
@@ -105,8 +115,7 @@ export const Stepper: React.FC<StepperProps> = React.memo(({
           activeOpacity={0.7}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <MaterialCommunityIcons
-            name="minus"
+          <Minus
             size={20}
             color={isAtMin ? '#ccc' : '#fff'}
           />
@@ -132,8 +141,7 @@ export const Stepper: React.FC<StepperProps> = React.memo(({
           activeOpacity={0.7}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <MaterialCommunityIcons
-            name="plus"
+          <Plus
             size={20}
             color={isAtMax ? '#ccc' : '#fff'}
           />
@@ -147,9 +155,9 @@ export const Stepper: React.FC<StepperProps> = React.memo(({
           onPress={handleUpgradePress}
           activeOpacity={0.8}
         >
-          <MaterialCommunityIcons name="alert" size={16} color="#f59e0b" />
+          <AlertCircle size={16} color="#f59e0b" />
           <Text style={styles.upgradeText}>{upgradeMessage}</Text>
-          <MaterialCommunityIcons name="chevron-right" size={16} color="#f59e0b" />
+          <ChevronRight size={16} color="#f59e0b" />
         </TouchableOpacity>
       )}
     </View>

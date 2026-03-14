@@ -1,7 +1,7 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Pill, Settings } from 'lucide-react-native';
 import { HomeScreen } from '../screens/HomeScreen';
 import { CreateMedicineScreen } from '../screens/CreateMedicineScreen';
 import { EditMedicineScreen } from '../screens/EditMedicineScreen';
@@ -38,7 +38,7 @@ const MainTabs: React.FC = () => {
           title: 'My Medicines',
           tabBarLabel: 'Medicines',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="pill" color={color} size={size} />
+            <Pill color={color} size={size} />
           ),
         }}
       />
@@ -48,7 +48,7 @@ const MainTabs: React.FC = () => {
         options={{
           title: 'Settings',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="cog" color={color} size={size} />
+            <Settings color={color} size={size} />
           ),
         }}
       />

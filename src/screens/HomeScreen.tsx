@@ -7,7 +7,7 @@ import {
   StyleSheet,
   RefreshControl,
 } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Pill, Plus } from 'lucide-react-native';
 import { MedicineCard } from '../components/MedicineCard';
 import { useMedicine } from '../context/MedicineContext';
 import { Medicine, RootStackParamList } from '../types';
@@ -56,7 +56,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const renderEmptyState = useCallback(() => (
     <View style={styles.emptyContainer}>
       <View style={styles.emptyIconContainer}>
-        <MaterialCommunityIcons name="pill" size={80} color="#4CAF50" />
+        <Pill size={80} color="#4CAF50" />
       </View>
       <Text style={styles.emptyTitle}>No Medicines Yet</Text>
       <Text style={styles.emptySubtitle}>
@@ -68,7 +68,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         onPress={() => navigation.navigate('CreateMedicine')}
         activeOpacity={0.8}
       >
-        <MaterialCommunityIcons name="plus" size={20} color="#fff" />
+        <Plus size={20} color="#fff" />
         <Text style={styles.emptyButtonText}>Add Your First Medicine</Text>
       </TouchableOpacity>
     </View>
@@ -132,7 +132,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           onPress={() => navigation.navigate('CreateMedicine')}
           activeOpacity={0.8}
         >
-          <MaterialCommunityIcons name="plus" size={28} color="#fff" />
+          <Plus size={28} color="#fff" />
         </TouchableOpacity>
       )}
     </View>

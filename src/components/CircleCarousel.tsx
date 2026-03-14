@@ -7,7 +7,7 @@ import {
   StyleSheet,
   Dimensions,
 } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Check } from 'lucide-react-native';
 
 interface CircleCarouselProps {
   totalDoses: number;
@@ -66,8 +66,7 @@ export const CircleCarousel: React.FC<CircleCarouselProps> = React.memo(({
               ]}
             >
               {isChecked ? (
-                <MaterialCommunityIcons
-                  name="check"
+                <Check
                   size={18}
                   color="#fff"
                 />

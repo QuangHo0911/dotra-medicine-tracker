@@ -7,7 +7,7 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Pill, Clock, CheckCircle, Hash, CloudCheck, CloudOff, RefreshCw, ChevronRight, Trash2 } from 'lucide-react-native';
 import { useMedicine } from '../context/MedicineContext';
 import { clearAllData } from '../services/storage';
 import { cancelAllReminders } from '../services/notifications';
@@ -64,25 +64,25 @@ export const SettingsScreen: React.FC = () => {
         <Text style={styles.sectionTitle}>Statistics</Text>
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
-            <MaterialCommunityIcons name="pill" size={24} color="#4CAF50" />
+            <Pill size={24} color="#4CAF50" />
             <Text style={styles.statValue}>{medicines.length}</Text>
             <Text style={styles.statLabel}>Total</Text>
           </View>
-          
+
           <View style={styles.statCard}>
-            <MaterialCommunityIcons name="clock-outline" size={24} color="#FF9800" />
+            <Clock size={24} color="#FF9800" />
             <Text style={styles.statValue}>{activeCount}</Text>
             <Text style={styles.statLabel}>Active</Text>
           </View>
-          
+
           <View style={styles.statCard}>
-            <MaterialCommunityIcons name="check-circle" size={24} color="#2196F3" />
+            <CheckCircle size={24} color="#2196F3" />
             <Text style={styles.statValue}>{completedCount}</Text>
             <Text style={styles.statLabel}>Completed</Text>
           </View>
-          
+
           <View style={styles.statCard}>
-            <MaterialCommunityIcons name="counter" size={24} color="#9C27B0" />
+            <Hash size={24} color="#9C27B0" />
             <Text style={styles.statValue}>{totalDosesTaken}</Text>
             <Text style={styles.statLabel}>Doses Taken</Text>
           </View>
@@ -95,11 +95,7 @@ export const SettingsScreen: React.FC = () => {
         <View style={styles.infoCard}>
           <View style={styles.infoRow}>
             <View style={[styles.statusDot, { backgroundColor: userId ? '#4CAF50' : '#f44336' }]} />
-            <MaterialCommunityIcons 
-              name={userId ? "cloud-check" : "cloud-off"} 
-              size={22} 
-              color={userId ? "#4CAF50" : "#f44336"} 
-            />
+            {userId ? <CloudCheck size={22} color="#4CAF50" /> : <CloudOff size={22} color="#f44336" />}
             <View style={styles.infoTextContainer}>
               <Text style={styles.infoText}>
                 {userId ? 'Cloud Sync Enabled' : 'Cloud Sync Disabled'}
@@ -125,13 +121,13 @@ export const SettingsScreen: React.FC = () => {
           activeOpacity={0.7}
         >
           <View style={[styles.iconContainer, { backgroundColor: '#e8f5e9' }]} >
-            <MaterialCommunityIcons name="sync" size={20} color="#4CAF50" />
+            <RefreshCw size={20} color="#4CAF50" />
           </View>
           <View style={styles.buttonTextContainer}>
             <Text style={styles.buttonText}>Sync with Cloud</Text>
             <Text style={styles.buttonSubtext}>Backup your data</Text>
           </View>
-          <MaterialCommunityIcons name="chevron-right" size={20} color="#ccc" />
+          <ChevronRight size={20} color="#ccc" />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -140,7 +136,7 @@ export const SettingsScreen: React.FC = () => {
           activeOpacity={0.7}
         >
           <View style={[styles.iconContainer, { backgroundColor: '#ffebee' }]} >
-            <MaterialCommunityIcons name="delete" size={20} color="#f44336" />
+            <Trash2 size={20} color="#f44336" />
           </View>
           <View style={styles.buttonTextContainer}>
             <Text style={[styles.buttonText, styles.dangerText]}>Clear All Data</Text>
