@@ -128,7 +128,7 @@ export const MedicineCard: React.FC<MedicineCardProps> = React.memo(({ medicine,
         onComplete={() => setShowConfetti(false)}
       />
 
-      <View className="flex-row justify-between items-start mb-3">
+      <View className="flex-row justify-between items-start mb-2">
         <View className="flex-1 mr-2">
           <View className="flex-row items-center mb-2">
             <View
@@ -210,7 +210,7 @@ export const MedicineCard: React.FC<MedicineCardProps> = React.memo(({ medicine,
         </Modal>
       </View>
 
-      <View className="mt-1">
+      <View>
         {/* Stats Row - Day and Doses side by side */}
         <View className="flex-row mb-4">
           {/* Day Stat */}
