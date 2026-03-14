@@ -147,11 +147,6 @@ export const MedicineCard: React.FC<MedicineCardProps> = React.memo(({ medicine,
             </Text>
           </View>
 
-          <View className="flex-row items-center flex-wrap">
-            <Text variant="caption" color="secondary">
-              Day {dayProgress}/{medicine.durationDays}
-            </Text>
-          </View>
         </View>
 
         <View ref={menuButtonRef}>
@@ -216,9 +211,29 @@ export const MedicineCard: React.FC<MedicineCardProps> = React.memo(({ medicine,
       </View>
 
       <View className="mt-1">
-        <Text variant="caption" color="secondary" className="mb-2.5 font-medium">
-          Today's doses ({todayChecks}/{medicine.timesPerDay})
-        </Text>
+        {/* Stats Row - Day and Doses side by side */}
+        <View className="flex-row mb-4">
+          {/* Day Stat */}
+          <View className="mr-8">
+            <Text className="text-sm font-semibold text-text-secondary mb-1">
+              Day
+            </Text>
+            <Text variant="h2" className="text-text-primary">
+              {dayProgress}<Text className="text-base font-normal text-text-secondary"> /{medicine.durationDays}</Text>
+            </Text>
+          </View>
+
+          {/* Doses Stat */}
+          <View>
+            <Text className="text-sm font-semibold text-text-secondary mb-1">
+              Doses
+            </Text>
+            <Text variant="h2" className="text-text-primary">
+              {todayChecks}<Text className="text-base font-normal text-text-secondary"> /{medicine.timesPerDay}</Text>
+            </Text>
+          </View>
+        </View>
+
         <CircleCarousel
           totalDoses={medicine.timesPerDay}
           checkedDoses={todayChecks}
