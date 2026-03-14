@@ -186,8 +186,8 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
               value={durationDays}
               onChange={setDurationDays}
               min={1}
-              max={7}
-              upgradeMessage="Maximum duration is 7 days. Upgrade for longer tracking."
+              max={365}
+              upgradeMessage="Maximum duration is 365 days."
               showUpgrade={true}
             />
           </View>

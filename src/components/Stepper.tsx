@@ -5,7 +5,7 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
-import { Minus, Plus, AlertCircle, ChevronRight } from 'lucide-react-native';
+import { Minus, Plus, AlertCircle } from 'lucide-react-native';
 import { Text } from './ui/Text';
 import { cn } from '../utils/cn';
 
@@ -96,10 +96,6 @@ export const Stepper: React.FC<StepperProps> = React.memo(({
     setInputValue(value.toString());
   }, [value]);
 
-  const handleUpgradePress = useCallback(() => {
-    Alert.alert('Coming Soon', 'Upgrade feature will be available soon!');
-  }, []);
-
   const isAtMin = value <= min;
   const isAtMax = value >= max;
 
@@ -161,17 +157,14 @@ export const Stepper: React.FC<StepperProps> = React.memo(({
 
       {/* Upgrade Callout */}
       {showUpgradeCallout && upgradeMessage && (
-        <TouchableOpacity
+        <View
           className="flex-row items-center bg-warning-light rounded-lg px-3 py-2.5 mt-3"
-          onPress={handleUpgradePress}
-          activeOpacity={0.8}
         >
           <AlertCircle size={16} color="#f59e0b" />
           <Text className="flex-1 text-[13px] text-warning-dark ml-2 font-medium">
             {upgradeMessage}
           </Text>
-          <ChevronRight size={16} color="#f59e0b" />
-        </TouchableOpacity>
+        </View>
       )}
     </View>
   );
