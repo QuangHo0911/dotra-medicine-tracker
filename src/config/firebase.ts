@@ -5,12 +5,12 @@ import { getAuth, Auth, signInAnonymously } from 'firebase/auth';
 // Firebase configuration
 // These values are from your Firebase Console
 const firebaseConfig = {
-  apiKey: 'AIzaSyCR793kCmBOAqyqrUxz0DQUqfXHKlwB0J8',
-  authDomain: 'dotra-medicine-tracker.firebaseapp.com',
-  projectId: 'dotra-medicine-tracker',
-  storageBucket: 'dotra-medicine-tracker.firebasestorage.app',
-  messagingSenderId: '418741910483',
-  appId: '1:418741910483:web:251be7b342568b66bd0d26',
+  apiKey: process.env.FIREBASE_API_KEY ?? '',
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN ?? '',
+  projectId: process.env.FIREBASE_PROJECT_ID ?? '',
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET ?? '',
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID ?? '',
+  appId: process.env.FIREBASE_APP_ID ?? '',
 };
 
 let app: FirebaseApp | null = null;

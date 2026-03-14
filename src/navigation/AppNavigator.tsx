@@ -1,5 +1,4 @@
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -59,34 +58,32 @@ const MainTabs: React.FC = () => {
 
 export const AppNavigator: React.FC = () => {
   return (
-    <NavigationContainer>
-      <Stack.Navigator
-        screenOptions={{
-          headerStyle: {
-            backgroundColor: '#4CAF50',
-          },
-          headerTintColor: '#fff',
-          headerTitleStyle: {
-            fontWeight: '600',
-          },
-        }}
-      >
-        <Stack.Screen
-          name="MainTabs"
-          component={MainTabs}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="CreateMedicine"
-          component={CreateMedicineScreen}
-          options={{ title: 'Add Medicine' }}
-        />
-        <Stack.Screen
-          name="EditMedicine"
-          component={EditMedicineScreen}
-          options={{ title: 'Edit Medicine' }}
-        />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: '#4CAF50',
+        },
+        headerTintColor: '#fff',
+        headerTitleStyle: {
+          fontWeight: '600',
+        },
+      }}
+    >
+      <Stack.Screen
+        name="MainTabs"
+        component={MainTabs}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="CreateMedicine"
+        component={CreateMedicineScreen}
+        options={{ title: 'Add Medicine' }}
+      />
+      <Stack.Screen
+        name="EditMedicine"
+        component={EditMedicineScreen}
+        options={{ title: 'Edit Medicine' }}
+      />
+    </Stack.Navigator>
   );
 };
