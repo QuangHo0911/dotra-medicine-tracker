@@ -1,7 +1,8 @@
 import React from 'react';
+import { TouchableOpacity } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Pill, Settings } from 'lucide-react-native';
+import { Pill, Settings, ChevronLeft } from 'lucide-react-native';
 import { HomeScreen } from '../screens/HomeScreen';
 import { CreateMedicineScreen } from '../screens/CreateMedicineScreen';
 import { EditMedicineScreen } from '../screens/EditMedicineScreen';
@@ -72,17 +73,33 @@ export const AppNavigator: React.FC = () => {
       <Stack.Screen
         name="MainTabs"
         component={MainTabs}
-        options={{ headerShown: false }}
+        options={{ headerShown: false, headerBackTitle: '' }}
       />
       <Stack.Screen
         name="CreateMedicine"
         component={CreateMedicineScreen}
-        options={{ title: 'Add Medicine' }}
+        options={({ navigation }) => ({
+          title: 'Add Medicine',
+          headerBackVisible: false,
+          headerLeft: () => (
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+              <ChevronLeft color="#fff" size={28} />
+            </TouchableOpacity>
+          ),
+        })}
       />
       <Stack.Screen
         name="EditMedicine"
         component={EditMedicineScreen}
-        options={{ title: 'Edit Medicine' }}
+        options={({ navigation }) => ({
+          title: 'Edit Medicine',
+          headerBackVisible: false,
+          headerLeft: () => (
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+              <ChevronLeft color="#fff" size={28} />
+            </TouchableOpacity>
+          ),
+        })}
       />
     </Stack.Navigator>
   );
