@@ -49,7 +49,7 @@ export const EditMedicineScreen: React.FC<EditMedicineScreenProps> = ({ route, n
       <View style={styles.container}>
         <View style={styles.notFoundContainer}>
           <MaterialCommunityIcons name="alert-circle" size={64} color="#f44336" />
-          <Text style={styles.errorText}>Medicine not found</Text>
+          <Text style={styles.notFoundErrorText}>Medicine not found</Text>
           <TouchableOpacity
             style={styles.goBackButton}
             onPress={() => navigation.goBack()}
@@ -494,7 +494,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 10,
   },
-  errorText: {
+  notFoundErrorText: {
     fontSize: 18,
     color: '#666',
     textAlign: 'center',
