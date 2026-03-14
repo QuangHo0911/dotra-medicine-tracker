@@ -192,7 +192,7 @@ export const EditMedicineScreen: React.FC<EditMedicineScreenProps> = ({ route, n
             </Text>
             <TextInput
               className={cn(
-                "border-2 border-border rounded-xl px-4 py-3.5 bg-background-input mt-2 text-base text-text",
+                "border-2 border-border rounded px-4 py-3.5 bg-background-input mt-2 text-base text-text",
                 errors.name && "border-danger bg-danger-light"
               )}
               value={name}
@@ -201,12 +201,12 @@ export const EditMedicineScreen: React.FC<EditMedicineScreenProps> = ({ route, n
                 if (errors.name) setErrors({});
               }}
               placeholder="e.g., Vitamin D, Ibuprofen"
-              maxLength={50}
+              maxLength={200}
             />
             {errors.name && (
               <Text variant="caption" color="danger" className="mt-2">{errors.name}</Text>
             )}
-            <Text variant="caption" color="muted" className="mt-2 text-right">{name.length}/50</Text>
+            <Text variant="caption" color="muted" className="mt-2 text-right">{name.length}/200</Text>
           </View>
         </Card>
 
@@ -257,7 +257,7 @@ export const EditMedicineScreen: React.FC<EditMedicineScreenProps> = ({ route, n
               {reminderTimes.map((time, index) => (
                 <View key={index} className="flex-row items-center mb-3">
                   <TouchableOpacity
-                    className="flex-1 flex-row items-center border-2 border-border rounded-xl px-4 py-3 bg-background-input"
+                    className="flex-1 flex-row items-center border-2 border-border rounded px-4 py-3 bg-background-input"
                     onPress={() => handleTimePress(index)}
                     activeOpacity={0.7}
                   >

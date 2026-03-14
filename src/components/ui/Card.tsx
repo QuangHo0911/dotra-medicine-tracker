@@ -34,7 +34,7 @@ export const Card = React.forwardRef<View, CardProps>(
       <View
         ref={ref}
         className={cn(
-          'rounded-2xl p-5',
+          'rounded p-5',
           'rounded-continuous',
           variantStyles[variant],
           isPressable && 'active:opacity-90',

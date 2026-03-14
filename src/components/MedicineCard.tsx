@@ -121,7 +121,7 @@ export const MedicineCard: React.FC<MedicineCardProps> = React.memo(({ medicine,
   return (
     <View
       style={cardStyle}
-      className="mx-4 my-2 p-5 rounded-3xl shadow-card"
+      className="mx-4 my-2 p-5 rounded shadow-card"
     >
       <ConfettiCelebration
         trigger={showConfetti}
@@ -132,7 +132,7 @@ export const MedicineCard: React.FC<MedicineCardProps> = React.memo(({ medicine,
         <View className="flex-1 mr-2">
           <View className="flex-row items-center mb-2">
             <View
-              className="w-9 h-9 rounded-xl justify-center items-center mr-3"
+              className="w-9 h-9 rounded justify-center items-center mr-3"
               style={{ backgroundColor: progressColor + '20' }}
             >
               <Pill size={20} color={progressColor} />
@@ -140,7 +140,7 @@ export const MedicineCard: React.FC<MedicineCardProps> = React.memo(({ medicine,
             <Text
               variant="h4"
               className="flex-1"
-              numberOfLines={1}
+              numberOfLines={2}
               ellipsizeMode="tail"
             >
               {medicine.name}
