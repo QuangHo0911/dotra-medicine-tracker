@@ -55,9 +55,9 @@ export const scheduleMedicineReminders = async (medicine: Medicine): Promise<str
           data: { medicineId: medicine.id },
         },
         trigger: {
+          type: 'daily',
           hour: hours,
           minute: minutes,
-          repeats: true,
         },
       });
 
