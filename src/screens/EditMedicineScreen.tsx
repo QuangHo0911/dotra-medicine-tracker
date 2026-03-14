@@ -16,6 +16,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Card } from '../components/ui/Card';
 import { Text } from '../components/ui/Text';
 import { Button } from '../components/ui/Button';
+import { BottomActionBar } from '../components/ui/BottomActionBar';
 import { cn } from '../utils/cn';
 
 type EditMedicineScreenProps = NativeStackScreenProps<RootStackParamList, 'EditMedicine'>;
@@ -176,12 +177,13 @@ export const EditMedicineScreen: React.FC<EditMedicineScreenProps> = ({ route, n
   }, [name, timesPerDay, durationDays]);
 
   return (
-    <ScrollView
-      className="flex-1 bg-background"
-      keyboardShouldPersistTaps="handled"
-      contentContainerClassName="pb-8"
-    >
-      <View className="p-4">
+    <View className="flex-1 bg-background">
+      <ScrollView
+        className="flex-1"
+        keyboardShouldPersistTaps="handled"
+        contentContainerClassName="pb-28"
+      >
+        <View className="p-4">
         {/* Medicine Name */}
         <Card className="mb-4">
           <Text variant="h4" className="mb-4">Medicine Details</Text>
@@ -292,25 +294,13 @@ export const EditMedicineScreen: React.FC<EditMedicineScreenProps> = ({ route, n
           )}
         </Card>
 
-        {/* Save Button */}
-        <Button
-          variant="primary"
-          size="lg"
-          isLoading={isSaving}
-          isDisabled={!isFormValid}
-          onPress={handleSave}
-          className="mt-2"
-        >
-          Update Medicine
-        </Button>
-
-        {/* Delete Button */}
+        {/* Delete Button - kept inline */}
         <Button
           variant="outline"
           size="lg"
           leftIcon={<Trash2 size={20} color="#ef5350" />}
           onPress={handleDelete}
-          className="mt-3 border-danger"
+          className="mt-6 border-danger"
           textClassName="text-danger"
         >
           Delete Medicine
@@ -324,5 +314,14 @@ export const EditMedicineScreen: React.FC<EditMedicineScreenProps> = ({ route, n
         initialTime={editingTimeIndex !== null ? reminderTimes[editingTimeIndex] : '09:00'}
       />
     </ScrollView>
+
+    <BottomActionBar
+      onCancel={() => navigation.goBack()}
+      onPrimaryAction={handleSave}
+      primaryActionLabel="Update Medicine"
+      isLoading={isSaving}
+      isDisabled={!isFormValid}
+    />
+  </View>
   );
 };

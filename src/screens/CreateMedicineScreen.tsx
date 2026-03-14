@@ -7,16 +7,16 @@ import {
   Switch,
   Alert,
 } from 'react-native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Clock, XCircle, Plus } from 'lucide-react-native';
 import { Stepper } from '../components/Stepper';
 import { TimePickerModal } from '../components/TimePickerModal';
 import { useMedicine } from '../context/MedicineContext';
 import { MedicineFormData } from '../types';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
 import { Card } from '../components/ui/Card';
 import { Text } from '../components/ui/Text';
-import { Button } from '../components/ui/Button';
+import { BottomActionBar } from '../components/ui/BottomActionBar';
 import { cn } from '../utils/cn';
 
 type CreateMedicineScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -136,12 +136,13 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
   }, [name, timesPerDay, durationDays]);
 
   return (
-    <ScrollView
-      className="flex-1 bg-background"
-      keyboardShouldPersistTaps="handled"
-      contentContainerClassName="pb-8"
-    >
-      <View className="p-4">
+    <View className="flex-1 bg-background">
+      <ScrollView
+        className="flex-1"
+        keyboardShouldPersistTaps="handled"
+        contentContainerClassName="pb-28"
+      >
+        <View className="p-4">
         {/* Medicine Name */}
         <Card className="mb-4">
           <Text variant="h4" className="mb-4">Medicine Details</Text>
@@ -253,17 +254,6 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
           )}
         </Card>
 
-        {/* Save Button */}
-        <Button
-          variant="primary"
-          size="lg"
-          isLoading={isSaving}
-          isDisabled={!isFormValid}
-          onPress={handleSave}
-          className="mt-2"
-        >
-          Create Medicine
-        </Button>
       </View>
 
       <TimePickerModal
@@ -273,5 +263,14 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
         initialTime={editingTimeIndex !== null ? reminderTimes[editingTimeIndex] : '09:00'}
       />
     </ScrollView>
+
+    <BottomActionBar
+      onCancel={() => navigation.goBack()}
+      onPrimaryAction={handleSave}
+      primaryActionLabel="Create Medicine"
+      isLoading={isSaving}
+      isDisabled={!isFormValid}
+    />
+  </View>
   );
 };
