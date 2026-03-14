@@ -7,7 +7,7 @@ import React, {
   ReactNode,
   useMemo,
 } from 'react';
-import { v4 as uuidv4 } from 'uuid';
+import * as Crypto from 'expo-crypto';
 import { Medicine, MedicineFormData } from '../types';
 import { loadMedicines, saveMedicines } from '../services/storage';
 import {
@@ -121,7 +121,7 @@ export const MedicineProvider: React.FC<{ children: ReactNode }> = ({ children }
   const createMedicine = useCallback(async (data: MedicineFormData): Promise<Medicine> => {
     const now = new Date().toISOString();
     const newMedicine: Medicine = {
-      id: uuidv4(),
+      id: Crypto.randomUUID(),
       name: data.name,
       timesPerDay: data.timesPerDay,
       durationDays: data.durationDays,
