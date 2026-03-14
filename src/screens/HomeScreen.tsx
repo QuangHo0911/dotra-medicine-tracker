@@ -10,7 +10,6 @@ import { MedicineCard } from '../components/MedicineCard';
 import { useMedicine } from '../context/MedicineContext';
 import { Medicine, RootStackParamList } from '../types';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Card } from '../components/ui/Card';
 import { Text } from '../components/ui/Text';
 import { Button } from '../components/ui/Button';
 import { cn } from '../utils/cn';
@@ -24,17 +23,6 @@ interface HomeScreenProps {
 export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const { medicines, isLoading, refreshMedicines } = useMedicine();
   const [refreshing, setRefreshing] = useState(false);
-
-  // Memoize filtered lists
-  const activeMedicines = React.useMemo(() =>
-    medicines.filter((m) => m.status === 'active'),
-    [medicines]
-  );
-
-  const completedMedicines = React.useMemo(() =>
-    medicines.filter((m) => m.status === 'completed'),
-    [medicines]
-  );
 
   const handleEdit = useCallback((medicine: Medicine) => {
     navigation.navigate('EditMedicine', { medicineId: medicine.id });
@@ -76,35 +64,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     </View>
   ), [navigation]);
 
-  const renderHeader = useCallback(() => {
-    if (medicines.length === 0) return null;
-
-    return (
-      <View className="px-4 py-3">
-        <Card className="flex-row py-4">
-          <View className="flex-1 items-center">
-            <Text variant="stat">{activeMedicines.length}</Text>
-            <Text variant="caption" color="secondary" className="mt-1">Active</Text>
-          </View>
-
-          <View className="w-px bg-border mx-3" />
-
-          <View className="flex-1 items-center">
-            <Text variant="stat">{completedMedicines.length}</Text>
-            <Text variant="caption" color="secondary" className="mt-1">Completed</Text>
-          </View>
-
-          <View className="w-px bg-border mx-3" />
-
-          <View className="flex-1 items-center">
-            <Text variant="stat">{medicines.length}</Text>
-            <Text variant="caption" color="secondary" className="mt-1">Total</Text>
-          </View>
-        </Card>
-      </View>
-    );
-  }, [medicines.length, activeMedicines.length, completedMedicines.length]);
-
   return (
     <View className="flex-1 bg-background">
       <FlatList
@@ -116,7 +75,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           medicines.length === 0 && "justify-center"
         )}
         ListEmptyComponent={renderEmptyState}
-        ListHeaderComponent={renderHeader}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
