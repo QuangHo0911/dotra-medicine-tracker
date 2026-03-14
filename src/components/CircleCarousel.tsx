@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   ScrollView,
@@ -18,14 +18,42 @@ interface CircleCarouselProps {
 
 const { width } = Dimensions.get('window');
 
+// Circle dimensions for scroll calculations
+const CIRCLE_WIDTH = 40;
+const CIRCLE_MARGIN = 6;
+const TOTAL_CIRCLE_WIDTH = CIRCLE_WIDTH + CIRCLE_MARGIN * 2; // 52px
+
 export const CircleCarousel: React.FC<CircleCarouselProps> = React.memo(({
   totalDoses,
   checkedDoses,
   onToggleCheck,
   onToggleUncheck,
 }) => {
+  const scrollViewRef = useRef<ScrollView>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
   // Always show at least one empty circle
   const displayCount = Math.max(totalDoses, 1);
+
+  // Calculate if carousel needs peek offset (content overflows container)
+  const totalContentWidth = displayCount * TOTAL_CIRCLE_WIDTH;
+  const needsPeekOffset = totalContentWidth > containerWidth && containerWidth > 0;
+
+  // Auto-scroll to first unchecked circle on mount
+  useEffect(() => {
+    if (scrollViewRef.current && containerWidth > 0) {
+      const firstUncheckedIndex = checkedDoses;
+      const scrollToX = firstUncheckedIndex * TOTAL_CIRCLE_WIDTH;
+
+      // Only scroll if there are circles beyond what's visible and we're not at the start
+      if (firstUncheckedIndex > 0 || needsPeekOffset) {
+        scrollViewRef.current.scrollTo({
+          x: scrollToX,
+          animated: true,
+        });
+      }
+    }
+  }, [containerWidth]); // Run when container width is known (on mount/layout)
 
   const handleCirclePress = useCallback((index: number) => {
     if (index < checkedDoses) {
@@ -44,9 +72,14 @@ export const CircleCarousel: React.FC<CircleCarouselProps> = React.memo(({
 
   return (
     <ScrollView
+      ref={scrollViewRef}
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.container}
+      contentContainerStyle={[
+        styles.container,
+        needsPeekOffset && styles.containerWithPeek,
+      ]}
+      onLayout={(event) => setContainerWidth(event.nativeEvent.layout.width)}
     >
       {Array.from({ length: displayCount }).map((_, index) => {
         const isChecked = index < checkedDoses;
@@ -87,6 +120,9 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 4,
     paddingVertical: 4,
+  },
+  containerWithPeek: {
+    paddingLeft: -20, // Negative offset creates peek effect
   },
   circleWrapper: {
     marginHorizontal: 6,
