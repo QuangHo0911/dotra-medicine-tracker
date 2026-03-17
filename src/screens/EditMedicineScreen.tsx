@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   TextInput,
@@ -6,20 +6,15 @@ import {
   ScrollView,
   Switch,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
-import { AlertCircle, Clock, XCircle, Plus, Trash2 } from 'lucide-react-native';
+import { AlertCircle, ChevronLeft, Clock, Pill, Plus, Trash2, XCircle } from 'lucide-react-native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Stepper } from '../components/Stepper';
 import { TimePickerModal } from '../components/TimePickerModal';
 import { useMedicine } from '../context/MedicineContext';
 import { MedicineFormData, RootStackParamList } from '../types';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Card } from '../components/ui/Card';
 import { Text } from '../components/ui/Text';
-import { Button } from '../components/ui/Button';
 import { BottomActionBar } from '../components/ui/BottomActionBar';
-import { cn } from '../utils/cn';
 
 type EditMedicineScreenProps = NativeStackScreenProps<RootStackParamList, 'EditMedicine'>;
 
@@ -48,36 +43,19 @@ export const EditMedicineScreen: React.FC<EditMedicineScreenProps> = ({ route, n
     }
   }, [medicine]);
 
-  if (!medicine) {
-    return (
-      <View className="flex-1 bg-background justify-center items-center px-8">
-        <AlertCircle size={64} color="#ef5350" />
-        <Text variant="h4" color="secondary" className="mt-4">Medicine not found</Text>
-        <Button
-          variant="primary"
-          size="md"
-          onPress={() => navigation.goBack()}
-          className="mt-6"
-        >
-          Go Back
-        </Button>
-      </View>
-    );
-  }
-
   const handleAddReminderTime = useCallback(() => {
     if (reminderTimes.length < timesPerDay) {
-      setReminderTimes(prev => [...prev, '09:00']);
+      setReminderTimes((previous) => [...previous, '09:00']);
     }
   }, [reminderTimes.length, timesPerDay]);
 
   const handleRemoveReminderTime = useCallback((index: number) => {
-    setReminderTimes(prev => prev.filter((_, i) => i !== index));
+    setReminderTimes((previous) => previous.filter((_, reminderIndex) => reminderIndex !== index));
   }, []);
 
   const handleReminderTimeChange = useCallback((index: number, time: string) => {
-    setReminderTimes(prev => {
-      const updated = [...prev];
+    setReminderTimes((previous) => {
+      const updated = [...previous];
       updated[index] = time;
       return updated;
     });
@@ -94,20 +72,20 @@ export const EditMedicineScreen: React.FC<EditMedicineScreenProps> = ({ route, n
     }
   }, [editingTimeIndex, handleReminderTimeChange]);
 
-  const validate = useCallback((): boolean => {
-    const newErrors: { name?: string } = {};
+  const validate = useCallback(() => {
+    const nextErrors: { name?: string } = {};
 
     if (!name.trim()) {
-      newErrors.name = 'Please enter a medicine name';
+      nextErrors.name = 'Please enter a medicine name';
     }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   }, [name]);
 
   const handleSave = useCallback(async () => {
     if (!validate()) {
-      Alert.alert('Error', 'Please fix the errors before saving');
+      Alert.alert('Error', 'Please fix the errors before saving.');
       return;
     }
 
@@ -122,23 +100,22 @@ export const EditMedicineScreen: React.FC<EditMedicineScreenProps> = ({ route, n
       };
 
       await updateMedicine(medicineId, data);
-
-      Alert.alert(
-        'Success',
-        `"${name.trim()}" has been updated!`,
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
-      );
+      Alert.alert('Success', `"${name.trim()}" has been updated.`, [{ text: 'OK', onPress: () => navigation.goBack() }]);
     } catch (error) {
       console.error('Error updating medicine:', error);
       Alert.alert('Error', 'Failed to update medicine. Please try again.');
     } finally {
       setIsSaving(false);
     }
-  }, [name, timesPerDay, durationDays, remindersEnabled, reminderTimes, medicineId, updateMedicine, navigation, validate]);
+  }, [durationDays, medicineId, name, navigation, reminderTimes, remindersEnabled, timesPerDay, updateMedicine, validate]);
 
   const handleDelete = useCallback(() => {
+    if (!medicine) {
+      return;
+    }
+
     Alert.alert(
-      'Delete Medicine',
+      'Delete medicine',
       `Are you sure you want to delete "${medicine.name}"? This action cannot be undone.`,
       [
         { text: 'Cancel', style: 'cancel' },
@@ -156,208 +133,277 @@ export const EditMedicineScreen: React.FC<EditMedicineScreenProps> = ({ route, n
         },
       ]
     );
-  }, [deleteMedicine, medicineId, medicine?.name, navigation]);
+  }, [deleteMedicine, medicine, medicineId, navigation]);
 
   const handleTimesPerDayChange = useCallback((value: number) => {
     setTimesPerDay(value);
-    setReminderTimes(prev => {
-      if (value < prev.length) {
-        return prev.slice(0, value);
+    setReminderTimes((previous) => {
+      if (value < previous.length) {
+        return previous.slice(0, value);
       }
-      return prev;
+      return previous;
     });
   }, []);
 
-  const isFormValid = useMemo(() => {
-    return name.trim().length > 0 && timesPerDay >= 1 && durationDays >= 1;
-  }, [name, timesPerDay, durationDays]);
+  const isFormValid = useMemo(() => name.trim().length > 0 && timesPerDay >= 1 && durationDays >= 1, [durationDays, name, timesPerDay]);
+  const summaryChips = useMemo(
+    () => [
+      `${timesPerDay}× daily`,
+      `${durationDays} day${durationDays === 1 ? '' : 's'}`,
+      remindersEnabled ? `${reminderTimes.length} reminder${reminderTimes.length === 1 ? '' : 's'}` : 'Reminders off',
+    ],
+    [durationDays, reminderTimes.length, remindersEnabled, timesPerDay]
+  );
 
-  // Refs for scrolling to inputs when keyboard appears
-  const timesPerDayRef = useRef<View>(null);
-  const durationDaysRef = useRef<View>(null);
-  const scrollViewRef = useRef<ScrollView>(null);
-
-  const handleTimesPerDayFocus = useCallback(() => {
-    setTimeout(() => {
-      timesPerDayRef.current?.measureLayout(
-        scrollViewRef.current as any,
-        (x, y) => {
-          scrollViewRef.current?.scrollTo({ y: y - 100, animated: true });
-        },
-        () => {}
-      );
-    }, 100);
-  }, []);
-
-  const handleDurationFocus = useCallback(() => {
-    setTimeout(() => {
-      durationDaysRef.current?.measureLayout(
-        scrollViewRef.current as any,
-        (x, y) => {
-          scrollViewRef.current?.scrollTo({ y: y - 100, animated: true });
-        },
-        () => {}
-      );
-    }, 100);
-  }, []);
+  if (!medicine) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#F2EEE6', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28 }}>
+        <View style={{ width: 88, height: 88, borderRadius: 44, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+          <AlertCircle size={40} color="#C73B2A" />
+        </View>
+        <Text style={{ color: '#141414', fontSize: 26, fontWeight: '700', marginBottom: 10 }}>Medicine not found</Text>
+        <Text style={{ color: '#6B6B6B', fontSize: 15, lineHeight: 22, textAlign: 'center', marginBottom: 24 }}>
+          This medicine may have been removed already or your local list changed before this screen opened.
+        </Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.85} style={{ backgroundColor: '#024039', borderRadius: 999, paddingHorizontal: 22, paddingVertical: 14 }}>
+          <Text style={{ color: '#FFF', fontSize: 15, fontWeight: '700' }}>Go back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-background"
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-    >
-      <ScrollView
-        ref={scrollViewRef}
-        className="flex-1"
-        keyboardShouldPersistTaps="handled"
-        contentContainerClassName="pb-28"
-      >
-        <View className="p-4">
-        {/* Medicine Name */}
-        <Card className="mb-4">
-          <Text variant="h4" className="mb-4">Medicine Details</Text>
+    <View style={{ flex: 1, backgroundColor: '#F2EEE6' }}>
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 132 }}>
+        <View
+          style={{
+            backgroundColor: '#024039',
+            paddingTop: 56,
+            paddingHorizontal: 20,
+            paddingBottom: 28,
+            borderBottomLeftRadius: 34,
+            borderBottomRightRadius: 34,
+            overflow: 'hidden',
+          }}
+        >
+          <View style={{ position: 'absolute', top: -24, right: -12, width: 116, height: 116, borderRadius: 58, backgroundColor: 'rgba(255,255,255,0.08)' }} />
+          <View style={{ position: 'absolute', bottom: -54, left: -18, width: 148, height: 148, borderRadius: 74, borderWidth: 20, borderColor: 'rgba(228,221,203,0.12)' }} />
 
-          <View className="mb-2">
-            <Text variant="label">
-              <Text className="text-danger">*</Text> Medicine Name
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.85}
+            style={{ alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 999, padding: 10, marginBottom: 18 }}
+          >
+            <ChevronLeft size={18} color="#FFF" />
+          </TouchableOpacity>
+
+          <View style={{ flexDirection: 'row', gap: 16, alignItems: 'flex-start' }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: 'rgba(255,255,255,0.72)', fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.1, marginBottom: 8 }}>
+                Edit medicine
+              </Text>
+              <Text style={{ color: '#FFF', fontSize: 31, fontWeight: '700', lineHeight: 38, marginBottom: 10 }}>
+                Tune the routine without making it noisy.
+              </Text>
+              <Text style={{ color: 'rgba(255,255,255,0.82)', fontSize: 15, lineHeight: 22 }}>
+                Keep the same focused setup while adjusting cadence, duration, or the reminder pattern.
+              </Text>
+
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
+                {summaryChips.map((chip) => (
+                  <View key={chip} style={{ backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 }}>
+                    <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '700' }}>{chip}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            <View style={{ width: 72, height: 72, borderRadius: 24, backgroundColor: '#E4DDCB', alignItems: 'center', justifyContent: 'center', marginTop: 6 }}>
+              <Pill size={30} color="#024039" />
+            </View>
+          </View>
+        </View>
+
+        <View style={{ padding: 18, gap: 16 }}>
+          <View style={{ backgroundColor: '#FFF8EF', borderRadius: 28, padding: 20 }}>
+            <Text style={{ color: '#141414', fontSize: 22, fontWeight: '700', marginBottom: 4 }}>Medicine name</Text>
+            <Text style={{ color: '#6B6B6B', fontSize: 14, lineHeight: 21, marginBottom: 16 }}>
+              Keep the label familiar so the medicine stays easy to spot at a glance.
+            </Text>
+
+            <Text style={{ color: '#024039', fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 }}>
+              Required field
             </Text>
             <TextInput
-              className={cn(
-                "border-2 border-border rounded px-4 py-3.5 bg-background-input mt-2 text-base text-text",
-                errors.name && "border-danger bg-danger-light"
-              )}
               value={name}
               onChangeText={(text) => {
                 setName(text);
                 if (errors.name) setErrors({});
               }}
-              placeholder="e.g., Vitamin D, Ibuprofen"
+              placeholder="Vitamin D, Ibuprofen, Amoxicillin"
+              placeholderTextColor="#8E8A80"
               maxLength={200}
+              style={{
+                borderWidth: 1.5,
+                borderColor: errors.name ? '#C73B2A' : '#DDD5C7',
+                backgroundColor: '#FFF',
+                borderRadius: 20,
+                paddingHorizontal: 16,
+                paddingVertical: 16,
+                fontSize: 16,
+                color: '#141414',
+              }}
             />
-            {errors.name && (
-              <Text variant="caption" color="danger" className="mt-2">{errors.name}</Text>
-            )}
-            <Text variant="caption" color="muted" className="mt-2 text-right">{name.length}/200</Text>
-          </View>
-        </Card>
-
-        {/* Schedule */}
-        <Card className="mb-4">
-          <Text variant="h4" className="mb-4">Schedule</Text>
-
-          <View className="mb-4" ref={timesPerDayRef}>
-            <Stepper
-              label="Times per day"
-              value={timesPerDay}
-              onChange={handleTimesPerDayChange}
-              min={1}
-              max={10}
-              onInputFocus={handleTimesPerDayFocus}
-            />
-          </View>
-
-          <View className="mb-0" ref={durationDaysRef}>
-            <Stepper
-              label="Duration (days)"
-              value={durationDays}
-              onChange={setDurationDays}
-              min={1}
-              max={365}
-              upgradeMessage="Maximum duration is 365 days."
-              showUpgrade={true}
-              onInputFocus={handleDurationFocus}
-            />
-          </View>
-        </Card>
-
-        {/* Reminders */}
-        <Card className="mb-4">
-          <View className="flex-row justify-between items-start mb-4">
-            <View>
-              <Text variant="h4">Reminders</Text>
-              <Text variant="caption" color="muted">Get notified when it's time</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
+              <Text style={{ color: errors.name ? '#C73B2A' : '#6B6B6B', fontSize: 13 }}>
+                {errors.name || 'Short, clear names make daily check-offs faster.'}
+              </Text>
+              <Text style={{ color: '#8E8A80', fontSize: 12, fontWeight: '700' }}>{name.length}/200</Text>
             </View>
-            <Switch
-              value={remindersEnabled}
-              onValueChange={setRemindersEnabled}
-              trackColor={{ false: '#e0e0e0', true: '#81c784' }}
-              thumbColor={remindersEnabled ? '#4CAF50' : '#fff'}
-            />
           </View>
 
-          {remindersEnabled && (
-            <View className="mt-2">
-              {reminderTimes.map((time, index) => (
-                <View key={index} className="flex-row items-center mb-3">
-                  <TouchableOpacity
-                    className="flex-1 flex-row items-center border-2 border-border rounded px-4 py-3 bg-background-input"
-                    onPress={() => handleTimePress(index)}
-                    activeOpacity={0.7}
-                  >
-                    <Clock size={20} color="#666" />
-                    <Text className="flex-1 ml-3 text-base font-medium text-text">{time}</Text>
-                  </TouchableOpacity>
-                  {reminderTimes.length > 1 && (
-                    <TouchableOpacity
-                      onPress={() => handleRemoveReminderTime(index)}
-                      className="ml-3 p-1"
-                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    >
-                      <XCircle size={24} color="#ef5350" />
-                    </TouchableOpacity>
-                  )}
+          <View style={{ backgroundColor: '#FFF', borderRadius: 28, padding: 20 }}>
+            <Text style={{ color: '#141414', fontSize: 22, fontWeight: '700', marginBottom: 4 }}>Schedule</Text>
+            <Text style={{ color: '#6B6B6B', fontSize: 14, lineHeight: 21, marginBottom: 16 }}>
+              Adjust the cadence or course length while keeping the product scope lean and predictable.
+            </Text>
+
+            <View style={{ backgroundColor: '#F7F4EE', borderRadius: 22, padding: 16, marginBottom: 14 }}>
+              <Stepper label="Times per day" value={timesPerDay} onChange={handleTimesPerDayChange} min={1} max={10} />
+            </View>
+
+            <View style={{ backgroundColor: '#F7F4EE', borderRadius: 22, padding: 16 }}>
+              <Stepper
+                label="Duration days"
+                value={durationDays}
+                onChange={setDurationDays}
+                min={1}
+                max={365}
+                upgradeMessage="Maximum duration is 365 days."
+                showUpgrade
+              />
+            </View>
+
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 16 }}>
+              <View style={{ backgroundColor: '#EEF4EE', borderRadius: 18, paddingHorizontal: 12, paddingVertical: 10 }}>
+                <Text style={{ color: '#0A655A', fontSize: 13, fontWeight: '700' }}>{timesPerDay} check-in{timesPerDay === 1 ? '' : 's'} per day</Text>
+              </View>
+              <View style={{ backgroundColor: '#FFF3E4', borderRadius: 18, paddingHorizontal: 12, paddingVertical: 10 }}>
+                <Text style={{ color: '#B15A1B', fontSize: 13, fontWeight: '700' }}>{durationDays} day plan</Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={{ backgroundColor: '#EEF4EE', borderRadius: 28, padding: 20 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 14 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: '#141414', fontSize: 22, fontWeight: '700', marginBottom: 4 }}>Reminders</Text>
+                <Text style={{ color: '#587069', fontSize: 14, lineHeight: 21 }}>
+                  Update reminder timing only if a different rhythm would make the routine easier to keep.
+                </Text>
+              </View>
+              <Switch
+                value={remindersEnabled}
+                onValueChange={setRemindersEnabled}
+                trackColor={{ false: '#D8DED8', true: '#9DC7BA' }}
+                thumbColor={remindersEnabled ? '#0A655A' : '#FFF'}
+              />
+            </View>
+
+            {remindersEnabled ? (
+              <>
+                <View style={{ backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: 18, padding: 14, marginBottom: 14 }}>
+                  <Text style={{ color: '#0A655A', fontSize: 13, lineHeight: 20 }}>
+                    Keep up to {timesPerDay} reminder time{timesPerDay === 1 ? '' : 's'} aligned with the daily dose count.
+                  </Text>
                 </View>
-              ))}
 
-              {reminderTimes.length < timesPerDay && (
-                <TouchableOpacity
-                  className="flex-row items-center py-2 mt-1"
-                  onPress={handleAddReminderTime}
-                  activeOpacity={0.7}
-                >
-                  <View className="w-7 h-7 rounded-full bg-primary justify-center items-center mr-2.5">
-                    <Plus size={16} color="#fff" />
+                {reminderTimes.map((time, index) => (
+                  <View key={`${time}-${index}`} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                    <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#D7E7DF', alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
+                      <Text style={{ color: '#0A655A', fontSize: 13, fontWeight: '700' }}>{index + 1}</Text>
+                    </View>
+
+                    <TouchableOpacity
+                      onPress={() => handleTimePress(index)}
+                      activeOpacity={0.8}
+                      style={{
+                        flex: 1,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        borderRadius: 20,
+                        backgroundColor: '#FFF',
+                        borderWidth: 1,
+                        borderColor: '#C9D9CF',
+                        paddingHorizontal: 14,
+                        paddingVertical: 14,
+                      }}
+                    >
+                      <Clock size={18} color="#0A655A" />
+                      <Text style={{ color: '#141414', fontSize: 16, fontWeight: '700', marginLeft: 10 }}>{time}</Text>
+                    </TouchableOpacity>
+
+                    {reminderTimes.length > 1 ? (
+                      <TouchableOpacity
+                        onPress={() => handleRemoveReminderTime(index)}
+                        activeOpacity={0.8}
+                        style={{ marginLeft: 10, padding: 4 }}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      >
+                        <XCircle size={24} color="#C73B2A" />
+                      </TouchableOpacity>
+                    ) : null}
                   </View>
-                  <Text className="text-[15px] font-semibold text-primary">Add reminder time</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
-        </Card>
+                ))}
 
-        {/* Delete Button - kept inline */}
-        <Button
-          variant="outline"
-          size="lg"
-          leftIcon={<Trash2 size={20} color="#ef5350" />}
-          onPress={handleDelete}
-          className="mt-6 border-danger"
-          textClassName="text-danger"
-        >
-          Delete Medicine
-        </Button>
-      </View>
+                {reminderTimes.length < timesPerDay ? (
+                  <TouchableOpacity
+                    onPress={handleAddReminderTime}
+                    activeOpacity={0.85}
+                    style={{ flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', marginTop: 4, backgroundColor: '#0A655A', borderRadius: 999, paddingHorizontal: 14, paddingVertical: 11 }}
+                  >
+                    <Plus size={16} color="#FFF" />
+                    <Text style={{ color: '#FFF', fontSize: 14, fontWeight: '700', marginLeft: 8 }}>Add reminder time</Text>
+                  </TouchableOpacity>
+                ) : null}
+              </>
+            ) : (
+              <View style={{ backgroundColor: 'rgba(255,255,255,0.72)', borderRadius: 18, padding: 14 }}>
+                <Text style={{ color: '#587069', fontSize: 14, lineHeight: 21 }}>
+                  Reminders are off. The medicine stays trackable manually from the home screen.
+                </Text>
+              </View>
+            )}
+          </View>
 
-      {/* Time Picker Modal */}
-      <TimePickerModal
-        visible={showTimePicker}
-        onClose={() => {
-          setShowTimePicker(false);
-          setEditingTimeIndex(null);
-        }}
-        onConfirm={handleTimeConfirm}
-        initialTime={editingTimeIndex !== null ? reminderTimes[editingTimeIndex] : '09:00'}
+          <TouchableOpacity
+            onPress={handleDelete}
+            activeOpacity={0.85}
+            style={{ backgroundColor: '#FFF', borderRadius: 24, padding: 18, borderWidth: 1, borderColor: 'rgba(199,59,42,0.18)', flexDirection: 'row', alignItems: 'center', gap: 12 }}
+          >
+            <Trash2 size={18} color="#C73B2A" />
+            <Text style={{ color: '#C73B2A', fontSize: 15, fontWeight: '700' }}>Delete medicine</Text>
+          </TouchableOpacity>
+        </View>
+
+        <TimePickerModal
+          visible={showTimePicker}
+          onClose={() => {
+            setShowTimePicker(false);
+            setEditingTimeIndex(null);
+          }}
+          onConfirm={handleTimeConfirm}
+          initialTime={editingTimeIndex !== null ? reminderTimes[editingTimeIndex] : '09:00'}
+        />
+      </ScrollView>
+
+      <BottomActionBar
+        onCancel={() => navigation.goBack()}
+        onPrimaryAction={handleSave}
+        primaryActionLabel="Update Medicine"
+        isLoading={isSaving}
+        isDisabled={!isFormValid}
       />
-    </ScrollView>
-
-    <BottomActionBar
-      onCancel={() => navigation.goBack()}
-      onPrimaryAction={handleSave}
-      primaryActionLabel="Update Medicine"
-      isLoading={isSaving}
-      isDisabled={!isFormValid}
-    />
-  </KeyboardAvoidingView>
+    </View>
   );
 };

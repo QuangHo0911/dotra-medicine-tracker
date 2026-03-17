@@ -18,7 +18,19 @@ export const BottomActionBar: React.FC<BottomActionBarProps> = ({
   isDisabled = false,
 }) => {
   return (
-    <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-border px-4 pt-4 pb-safe">
+    <View
+      className="absolute bottom-0 left-0 right-0 px-4 pt-4 pb-safe"
+      style={{
+        backgroundColor: 'rgba(241, 238, 231, 0.98)',
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(2, 64, 57, 0.08)',
+        shadowColor: '#141414',
+        shadowOpacity: 0.08,
+        shadowRadius: 14,
+        shadowOffset: { width: 0, height: -6 },
+        elevation: 8,
+      }}
+    >
       <View className="flex-row gap-3">
         <Button
           variant="secondary"

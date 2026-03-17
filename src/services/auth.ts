@@ -14,9 +14,10 @@ import {
 } from 'firebase/auth';
 import { Platform } from 'react-native';
 import { auth, isFirebaseConfigured } from '../config/firebase';
+import { runtimeConfig } from '../config/runtime';
 import { UserProfile } from '../types';
 import { getUserProfileFromFirebase, saveUserProfileToFirebase } from './firebase';
-import { loadProfileFromStorage, saveProfileToStorage } from './storage';
+import { clearProfileFromStorage, loadProfileFromStorage, saveProfileToStorage } from './storage';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -52,20 +53,36 @@ export const createProfileFromUser = async (
   user: User,
   overrides?: Partial<UserProfile>
 ): Promise<UserProfile> => {
-  const fallbackName = overrides?.fullName || user.displayName || user.email?.split('@')[0] || 'Dotra User';
+  const storedProfile = await loadProfileFromStorage();
+  const storedProfileForUser = storedProfile?.uid === user.uid ? storedProfile : null;
+  const fallbackName =
+    overrides?.fullName ||
+    user.displayName ||
+    storedProfileForUser?.fullName ||
+    user.email?.split('@')[0] ||
+    'Dotra User';
   const nameParts = splitName(fallbackName);
 
   const existing = await getUserProfileFromFirebase(user.uid);
   const profile: UserProfile = {
     uid: user.uid,
     email: user.email,
-    fullName: overrides?.fullName || existing?.fullName || fallbackName,
-    firstName: overrides?.firstName || existing?.firstName || nameParts.firstName,
-    lastName: overrides?.lastName || existing?.lastName || nameParts.lastName,
-    avatarUrl: overrides?.avatarUrl ?? existing?.avatarUrl ?? user.photoURL,
-    initials: overrides?.initials || existing?.initials || buildInitials(overrides?.fullName || existing?.fullName || fallbackName),
-    provider: overrides?.provider || existing?.provider || (user.providerData[0]?.providerId === 'google.com' ? 'google' : 'password'),
-    createdAt: existing?.createdAt || new Date().toISOString(),
+    fullName: overrides?.fullName || existing?.fullName || storedProfileForUser?.fullName || fallbackName,
+    firstName: overrides?.firstName || existing?.firstName || storedProfileForUser?.firstName || nameParts.firstName,
+    lastName: overrides?.lastName || existing?.lastName || storedProfileForUser?.lastName || nameParts.lastName,
+    avatarUrl: overrides?.avatarUrl ?? existing?.avatarUrl ?? storedProfileForUser?.avatarUrl ?? user.photoURL,
+    localAvatarUri: overrides?.localAvatarUri ?? storedProfileForUser?.localAvatarUri ?? null,
+    initials:
+      overrides?.initials ||
+      existing?.initials ||
+      storedProfileForUser?.initials ||
+      buildInitials(overrides?.fullName || existing?.fullName || storedProfileForUser?.fullName || fallbackName),
+    provider:
+      overrides?.provider ||
+      existing?.provider ||
+      storedProfileForUser?.provider ||
+      (user.providerData[0]?.providerId === 'google.com' ? 'google' : 'password'),
+    createdAt: existing?.createdAt || storedProfileForUser?.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
 
@@ -99,8 +116,35 @@ export const sendResetEmail = async (email: string) => {
 };
 
 export const logout = async () => {
-  if (!auth) return;
-  await signOut(auth);
+  if (auth) {
+    await signOut(auth);
+  }
+  await clearProfileFromStorage();
+};
+
+export const updateStoredProfile = async (
+  updates: Partial<UserProfile>,
+  options: { persistRemote?: boolean } = {}
+): Promise<UserProfile> => {
+  const existingProfile = await loadProfileFromStorage();
+
+  if (!existingProfile) {
+    throw new Error('No stored profile is available to update.');
+  }
+
+  const nextProfile: UserProfile = {
+    ...existingProfile,
+    ...updates,
+    updatedAt: new Date().toISOString(),
+  };
+
+  await saveProfileToStorage(nextProfile);
+
+  if (options.persistRemote) {
+    await saveUserProfileToFirebase(nextProfile);
+  }
+
+  return nextProfile;
 };
 
 export const signInWithGoogle = async (): Promise<UserProfile> => {
@@ -113,23 +157,24 @@ export const signInWithGoogle = async (): Promise<UserProfile> => {
   }
 
   const request = new AuthSession.AuthRequest({
-    clientId: process.env.GOOGLE_EXPO_CLIENT_ID || process.env.GOOGLE_WEB_CLIENT_ID || '',
+    clientId: runtimeConfig.googleWebClientId,
     scopes: ['openid', 'profile', 'email'],
     responseType: AuthSession.ResponseType.IdToken,
     usePKCE: false,
-    redirectUri: AuthSession.makeRedirectUri(),
+    redirectUri:
+      runtimeConfig.googleRedirectUri || AuthSession.makeRedirectUri({ scheme: 'dotra', path: 'oauthredirect' }),
     extraParams: {
       nonce: 'dotra-google-auth',
     },
   });
 
   if (!request.clientId) {
-    throw new Error('Google OAuth is missing GOOGLE_EXPO_CLIENT_ID or GOOGLE_WEB_CLIENT_ID.');
+    throw new Error('Google OAuth is missing EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID.');
   }
 
   const result = await request.promptAsync(googleDiscovery);
   if (result.type !== 'success' || !result.params.id_token) {
-    throw new Error('Google sign-in was cancelled.');
+    throw new Error(result.type === 'cancel' || result.type === 'dismiss' ? 'Google sign-in was cancelled.' : 'Google sign-in did not return an ID token.');
   }
 
   const firebaseCredential = GoogleAuthProvider.credential(result.params.id_token);

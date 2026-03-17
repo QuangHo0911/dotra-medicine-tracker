@@ -59,7 +59,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             </Text>
             <Text style={{ color: '#FFF', fontSize: 32, fontWeight: '600' }}>My Medicines</Text>
           </View>
-          <InitialsAvatar initials={profile?.initials || 'DT'} avatarUrl={profile?.avatarUrl} />
+          <InitialsAvatar initials={profile?.initials || 'DT'} avatarUrl={profile?.avatarUrl} localAvatarUri={profile?.localAvatarUri} />
         </View>
         <CalendarStrip streakDates={streakDates} />
       </View>

@@ -58,7 +58,8 @@ export const syncMedicinesToFirebase = async (medicines: Medicine[]): Promise<bo
 
 export const saveUserProfileToFirebase = async (profile: UserProfile): Promise<boolean> => {
   if (!isFirebaseConfigured() || !db) return false;
-  await setDoc(doc(db, USERS_COLLECTION, profile.uid), profile, { merge: true });
+  const { localAvatarUri, ...remoteProfile } = profile;
+  await setDoc(doc(db, USERS_COLLECTION, profile.uid), { ...remoteProfile, localAvatarUri: null }, { merge: true });
   return true;
 };
 

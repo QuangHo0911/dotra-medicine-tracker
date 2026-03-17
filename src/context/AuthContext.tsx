@@ -10,6 +10,7 @@ import {
   sendResetEmail,
   signInWithGoogle,
   subscribeToAuthState,
+  updateStoredProfile,
 } from '../services/auth';
 import { UserProfile } from '../types';
 
@@ -24,6 +25,7 @@ interface AuthContextType {
   forgotPassword: (email: string) => Promise<void>;
   logoutUser: () => Promise<void>;
   refreshProfile: (user?: User | null) => Promise<void>;
+  updateProfileDetails: (updates: Partial<UserProfile>, options?: { persistRemote?: boolean }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -118,6 +120,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       },
       refreshProfile,
+      updateProfileDetails: async (updates, options) => {
+        const nextProfile = await updateStoredProfile(updates, options);
+        setProfile(nextProfile);
+      },
     }),
     [user, profile, isLoading]
   );

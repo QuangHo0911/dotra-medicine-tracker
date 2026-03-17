@@ -97,13 +97,17 @@ Since this is your first time with Firebase, here's a step-by-step guide:
 
 2. Fill in your Firebase values from Step 2:
    ```
-   FIREBASE_API_KEY=AIza...
-   FIREBASE_AUTH_DOMAIN=dotra-medicine-tracker.firebaseapp.com
-   FIREBASE_PROJECT_ID=dotra-medicine-tracker
-   FIREBASE_STORAGE_BUCKET=dotra-medicine-tracker.appspot.com
-   FIREBASE_MESSAGING_SENDER_ID=123456789
-   FIREBASE_APP_ID=1:123456789:web:abc123
+   EXPO_PUBLIC_FIREBASE_API_KEY=AIza...
+   EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=dotra-medicine-tracker.firebaseapp.com
+   EXPO_PUBLIC_FIREBASE_PROJECT_ID=dotra-medicine-tracker
+   EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=dotra-medicine-tracker.appspot.com
+   EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=123456789
+   EXPO_PUBLIC_FIREBASE_APP_ID=1:123456789:web:abc123
+   EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=your-google-web-client-id.apps.googleusercontent.com
+   EXPO_PUBLIC_GOOGLE_REDIRECT_URI=https://auth.expo.io/@your-expo-username/dotra-medicine-tracker
    ```
+
+3. Restart Expo after changing env values so the runtime config refreshes.
 
 ## Running the App
 

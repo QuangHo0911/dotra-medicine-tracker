@@ -5,15 +5,17 @@ interface InitialsAvatarProps {
   initials: string;
   size?: number;
   avatarUrl?: string | null;
+  localAvatarUri?: string | null;
 }
 
-export const InitialsAvatar: React.FC<InitialsAvatarProps> = ({ initials, size = 44, avatarUrl }) => {
+export const InitialsAvatar: React.FC<InitialsAvatarProps> = ({ initials, size = 44, avatarUrl, localAvatarUri }) => {
   const borderRadius = size / 2;
+  const sourceUri = localAvatarUri || avatarUrl;
 
-  if (avatarUrl) {
+  if (sourceUri) {
     return (
       <Image
-        source={{ uri: avatarUrl }}
+        source={{ uri: sourceUri }}
         style={{ width: size, height: size, borderRadius }}
       />
     );

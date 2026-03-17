@@ -29,6 +29,7 @@ export interface UserProfile {
   firstName?: string;
   lastName?: string;
   avatarUrl?: string | null;
+  localAvatarUri?: string | null;
   initials: string;
   provider: AuthProviderType;
   createdAt: string;

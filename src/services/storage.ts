@@ -5,17 +5,20 @@ const MEDICINES_KEY = '@medicines';
 const PROFILE_KEY = '@profile';
 const COMPLETION_KEY = '@completion-screen-seen';
 
-export const saveMedicines = async (medicines: Medicine[]): Promise<void> => {
+const getMedicinesKey = (scopeKey: string = 'guest') => `${MEDICINES_KEY}:${scopeKey}`;
+const getCompletionKey = (scopeKey: string = 'guest') => `${COMPLETION_KEY}:${scopeKey}`;
+
+export const saveMedicines = async (medicines: Medicine[], scopeKey?: string): Promise<void> => {
   try {
-    await AsyncStorage.setItem(MEDICINES_KEY, JSON.stringify(medicines));
+    await AsyncStorage.setItem(getMedicinesKey(scopeKey), JSON.stringify(medicines));
   } catch (error) {
     console.error('Error saving medicines:', error);
   }
 };
 
-export const loadMedicines = async (): Promise<Medicine[]> => {
+export const loadMedicines = async (scopeKey?: string): Promise<Medicine[]> => {
   try {
-    const jsonValue = await AsyncStorage.getItem(MEDICINES_KEY);
+    const jsonValue = await AsyncStorage.getItem(getMedicinesKey(scopeKey));
     return jsonValue ? JSON.parse(jsonValue) : [];
   } catch (error) {
     console.error('Error loading medicines:', error);
@@ -41,26 +44,34 @@ export const loadProfileFromStorage = async (): Promise<UserProfile | null> => {
   }
 };
 
-export const saveCompletionScreenSeen = async (date: string): Promise<void> => {
+export const clearProfileFromStorage = async (): Promise<void> => {
   try {
-    await AsyncStorage.setItem(COMPLETION_KEY, date);
+    await AsyncStorage.removeItem(PROFILE_KEY);
+  } catch (error) {
+    console.error('Error clearing profile:', error);
+  }
+};
+
+export const saveCompletionScreenSeen = async (date: string, scopeKey?: string): Promise<void> => {
+  try {
+    await AsyncStorage.setItem(getCompletionKey(scopeKey), date);
   } catch (error) {
     console.error('Error saving completion state:', error);
   }
 };
 
-export const loadCompletionScreenSeen = async (): Promise<string | null> => {
+export const loadCompletionScreenSeen = async (scopeKey?: string): Promise<string | null> => {
   try {
-    return await AsyncStorage.getItem(COMPLETION_KEY);
+    return await AsyncStorage.getItem(getCompletionKey(scopeKey));
   } catch (error) {
     console.error('Error loading completion state:', error);
     return null;
   }
 };
 
-export const clearAllData = async (): Promise<void> => {
+export const clearAllData = async (scopeKey?: string): Promise<void> => {
   try {
-    await AsyncStorage.multiRemove([MEDICINES_KEY, PROFILE_KEY, COMPLETION_KEY]);
+    await AsyncStorage.multiRemove([getMedicinesKey(scopeKey), PROFILE_KEY, getCompletionKey(scopeKey)]);
   } catch (error) {
     console.error('Error clearing data:', error);
   }

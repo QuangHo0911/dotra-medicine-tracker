@@ -53,6 +53,7 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const { user } = useAuth();
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const storageScopeKey = user?.uid ?? 'guest';
 
   const mergeMedicines = useCallback((local: Medicine[], remote: Medicine[]) => {
     const merged: Medicine[] = [];
@@ -76,7 +77,7 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const localMedicines = await loadMedicines();
+      const localMedicines = await loadMedicines(storageScopeKey);
       setMedicines(localMedicines);
 
       if (user) {
@@ -84,7 +85,7 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           const remoteMedicines = await getMedicinesFromFirebase();
           const merged = mergeMedicines(localMedicines, remoteMedicines);
           setMedicines(merged);
-          await saveMedicines(merged);
+          await saveMedicines(merged, storageScopeKey);
           if (remoteMedicines.length === 0 && localMedicines.length > 0) {
             await syncMedicinesToFirebase(localMedicines);
           }
@@ -95,7 +96,7 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } finally {
       setIsLoading(false);
     }
-  }, [mergeMedicines, user]);
+  }, [mergeMedicines, storageScopeKey, user]);
 
   useEffect(() => {
     loadData();
@@ -117,8 +118,8 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const persistMedicines = useCallback(async (nextMedicines: Medicine[]) => {
     setMedicines(nextMedicines);
-    await saveMedicines(nextMedicines);
-  }, []);
+    await saveMedicines(nextMedicines, storageScopeKey);
+  }, [storageScopeKey]);
 
   const createMedicine = useCallback(async (data: MedicineFormData): Promise<Medicine> => {
     const now = new Date().toISOString();
@@ -202,11 +203,11 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       progressPercentage: stats.progressPercentage,
     };
 
-    const seenDate = await loadCompletionScreenSeen();
+    const seenDate = await loadCompletionScreenSeen(storageScopeKey);
     if (seenDate === date) return null;
-    await saveCompletionScreenSeen(date);
+    await saveCompletionScreenSeen(date, storageScopeKey);
     return summary;
-  }, [medicines, persistMedicines]);
+  }, [medicines, persistMedicines, storageScopeKey]);
 
   const uncheckMedicine = useCallback(async (id: string, date: string = getToday()) => {
     const medicine = medicines.find((item) => item.id === id);
