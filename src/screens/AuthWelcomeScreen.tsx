@@ -1,66 +1,113 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Constants from 'expo-constants';
-import * as Google from 'expo-auth-session/providers/google';
+import * as Linking from 'expo-linking';
+import * as WebBrowser from 'expo-web-browser';
+import { AuthRequest, CodeChallengeMethod, ResponseType } from 'expo-auth-session';
 import { RootStackParamList } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { runtimeConfig } from '../config/runtime';
 
+WebBrowser.maybeCompleteAuthSession();
+
 type Props = NativeStackScreenProps<RootStackParamList, 'AuthWelcome'>;
 
+const GOOGLE_DISCOVERY = {
+  authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
+  tokenEndpoint: 'https://oauth2.googleapis.com/token',
+};
+
 /**
- * Build the redirect URI that matches the one registered in the Google OAuth
- * client: `https://auth.expo.io/@owner/slug`.  We derive it from the owner
- * and slug fields in app.json (available via Constants.expoConfig) so it stays
- * correct without hard-coding.
- *
- * Google's web-type OAuth client only accepts https:// redirect URIs, so the
- * default `makeRedirectUri()` (which returns `exp://…` in Expo Go) cannot be
- * used here.
+ * auth.expo.io proxy redirect URI — registered in the Google OAuth client.
+ * Google redirects here; the proxy then redirects to the Expo Go deep link.
  */
-const getGoogleRedirectUri = (): string => {
+const getProxyRedirectUri = (): string => {
   const owner = Constants.expoConfig?.owner;
   const slug = Constants.expoConfig?.slug;
-  if (owner && slug) {
-    return `https://auth.expo.io/@${owner}/${slug}`;
-  }
-  // Fallback: should never happen when app.json has owner + slug
-  throw new Error(
-    'Cannot build Google redirect URI: app.json must define "owner" and "slug".'
-  );
+  if (owner && slug) return `https://auth.expo.io/@${owner}/${slug}`;
+  throw new Error('app.json must define "owner" and "slug".');
 };
+
+/**
+ * Expo Go deep link — the URL auth.expo.io redirects to after Google completes.
+ * WebBrowser.openAuthSessionAsync watches for this scheme to close the browser.
+ */
+const getReturnUrl = (): string => Linking.createURL('');
 
 export const AuthWelcomeScreen: React.FC<Props> = ({ navigation }) => {
   const { loginWithGoogleIdToken } = useAuth();
-  const redirectUri = useMemo(getGoogleRedirectUri, []);
+  const [busy, setBusy] = useState(false);
 
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    clientId: runtimeConfig.googleWebClientId,
-    clientSecret: runtimeConfig.googleClientSecret || undefined,
-    redirectUri,
-  });
+  const handleGoogle = useCallback(async () => {
+    setBusy(true);
+    try {
+      const proxyRedirectUri = getProxyRedirectUri();
+      const returnUrl = getReturnUrl();
 
-  useEffect(() => {
-    if (response?.type === 'success') {
-      const idToken = response.params.id_token;
-      if (idToken) {
-        loginWithGoogleIdToken(idToken).catch((error) => {
-          Alert.alert('Google sign-in', error instanceof Error ? error.message : 'Unable to sign in with Google right now.');
-        });
-      } else {
-        Alert.alert('Google sign-in', 'No ID token received from Google.');
+      // 1. Build the OAuth request (generates PKCE code_verifier + challenge)
+      const request = new AuthRequest({
+        clientId: runtimeConfig.googleWebClientId,
+        redirectUri: proxyRedirectUri,
+        responseType: ResponseType.Code,
+        scopes: ['openid', 'https://www.googleapis.com/auth/userinfo.profile', 'https://www.googleapis.com/auth/userinfo.email'],
+        usePKCE: true,
+        codeChallengeMethod: CodeChallengeMethod.S256,
+      });
+
+      const authUrl = await request.makeAuthUrlAsync(GOOGLE_DISCOVERY);
+
+      // 2. Wrap through the auth.expo.io proxy /start endpoint
+      //    Proxy opens Google → Google redirects to proxy → proxy redirects to returnUrl
+      const proxyStartUrl =
+        `${proxyRedirectUri}/start?` +
+        new URLSearchParams({ authUrl, returnUrl }).toString();
+
+      // 3. Open browser — it closes automatically when it detects the returnUrl scheme
+      const result = await WebBrowser.openAuthSessionAsync(proxyStartUrl, returnUrl);
+
+      if (result.type !== 'success' || !('url' in result)) {
+        if (result.type === 'cancel' || result.type === 'dismiss') return;
+        throw new Error('Browser session did not complete successfully.');
       }
-    } else if (response?.type === 'error') {
-      Alert.alert('Google sign-in', response.error?.message || 'An error occurred during Google sign-in.');
-    }
-  }, [response]);
 
-  const handleGoogle = () => {
-    promptAsync().catch((error) => {
-      Alert.alert('Google sign-in', error instanceof Error ? error.message : 'Unable to sign in with Google right now.');
-    });
-  };
+      // 4. Parse the authorization code from the return URL
+      const resultUrl = new URL(result.url);
+      const code = resultUrl.searchParams.get('code');
+      if (!code) {
+        const error = resultUrl.searchParams.get('error');
+        throw new Error(error || 'No authorization code in response.');
+      }
+
+      // 5. Exchange code for tokens (id_token) at Google's token endpoint
+      const tokenRes = await fetch(GOOGLE_DISCOVERY.tokenEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: runtimeConfig.googleWebClientId,
+          client_secret: runtimeConfig.googleClientSecret,
+          code,
+          redirect_uri: proxyRedirectUri,
+          grant_type: 'authorization_code',
+          code_verifier: request.codeVerifier ?? '',
+        }).toString(),
+      });
+
+      const tokens = await tokenRes.json();
+      if (!tokenRes.ok || !tokens.id_token) {
+        throw new Error(tokens.error_description || tokens.error || 'Token exchange failed.');
+      }
+
+      // 6. Sign in to Firebase with the Google id_token
+      await loginWithGoogleIdToken(tokens.id_token);
+    } catch (error) {
+      if (error instanceof Error && error.message !== 'Browser session did not complete successfully.') {
+        Alert.alert('Google sign-in', error.message);
+      }
+    } finally {
+      setBusy(false);
+    }
+  }, [loginWithGoogleIdToken]);
 
   return (
     <View style={{ flex: 1, backgroundColor: '#F1EEE7', padding: 24, justifyContent: 'space-between' }}>
@@ -77,8 +124,8 @@ export const AuthWelcomeScreen: React.FC<Props> = ({ navigation }) => {
           </Text>
         </View>
 
-        <Pressable disabled={!request} onPress={handleGoogle} style={{ backgroundColor: '#024039', borderRadius: 999, paddingVertical: 18, alignItems: 'center', opacity: request ? 1 : 0.6 }}>
-          <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700' }}>Continue with Google</Text>
+        <Pressable disabled={busy} onPress={handleGoogle} style={{ backgroundColor: '#024039', borderRadius: 999, paddingVertical: 18, alignItems: 'center', opacity: busy ? 0.6 : 1 }}>
+          <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700' }}>{busy ? 'Signing in…' : 'Continue with Google'}</Text>
         </Pressable>
         <Pressable onPress={() => navigation.navigate('Register')} style={{ backgroundColor: '#FFFFFF', borderRadius: 999, paddingVertical: 18, alignItems: 'center' }}>
           <Text style={{ color: '#141414', fontSize: 16, fontWeight: '700' }}>Create account with email</Text>
