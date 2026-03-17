@@ -1,4 +1,3 @@
-import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import {
   createUserWithEmailAndPassword,
@@ -7,25 +6,16 @@ import {
   sendPasswordResetEmail,
   signInWithCredential,
   signInWithEmailAndPassword,
-  signInWithPopup,
   signOut,
   updateProfile,
   User,
 } from 'firebase/auth';
-import { Platform } from 'react-native';
 import { auth, isFirebaseConfigured } from '../config/firebase';
-import { runtimeConfig } from '../config/runtime';
 import { UserProfile } from '../types';
 import { getUserProfileFromFirebase, saveUserProfileToFirebase } from './firebase';
 import { clearProfileFromStorage, loadProfileFromStorage, saveProfileToStorage } from './storage';
 
 WebBrowser.maybeCompleteAuthSession();
-
-const googleDiscovery = {
-  authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
-  tokenEndpoint: 'https://oauth2.googleapis.com/token',
-  revocationEndpoint: 'https://oauth2.googleapis.com/revoke',
-};
 
 const buildInitials = (fullName: string) => {
   const parts = fullName.trim().split(/\s+/).filter(Boolean);
@@ -147,37 +137,9 @@ export const updateStoredProfile = async (
   return nextProfile;
 };
 
-export const signInWithGoogle = async (): Promise<UserProfile> => {
+export const signInWithGoogleIdToken = async (idToken: string): Promise<UserProfile> => {
   if (!auth) throw new Error('Firebase auth is not configured.');
-
-  if (Platform.OS === 'web') {
-    const provider = new GoogleAuthProvider();
-    const credential = await signInWithPopup(auth, provider);
-    return createProfileFromUser(credential.user, { provider: 'google' });
-  }
-
-  const request = new AuthSession.AuthRequest({
-    clientId: runtimeConfig.googleWebClientId,
-    scopes: ['openid', 'profile', 'email'],
-    responseType: AuthSession.ResponseType.IdToken,
-    usePKCE: false,
-    redirectUri:
-      runtimeConfig.googleRedirectUri || AuthSession.makeRedirectUri({ scheme: 'dotra', path: 'oauthredirect' }),
-    extraParams: {
-      nonce: 'dotra-google-auth',
-    },
-  });
-
-  if (!request.clientId) {
-    throw new Error('Google OAuth is missing EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID.');
-  }
-
-  const result = await request.promptAsync(googleDiscovery);
-  if (result.type !== 'success' || !result.params.id_token) {
-    throw new Error(result.type === 'cancel' || result.type === 'dismiss' ? 'Google sign-in was cancelled.' : 'Google sign-in did not return an ID token.');
-  }
-
-  const firebaseCredential = GoogleAuthProvider.credential(result.params.id_token);
+  const firebaseCredential = GoogleAuthProvider.credential(idToken);
   const credential = await signInWithCredential(auth, firebaseCredential);
   return createProfileFromUser(credential.user, { provider: 'google' });
 };

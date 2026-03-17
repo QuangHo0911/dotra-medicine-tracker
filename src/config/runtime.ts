@@ -37,10 +37,10 @@ export const runtimeConfig = {
     'GOOGLE_EXPO_CLIENT_ID',
     'googleWebClientId'
   ),
-  googleRedirectUri: readRuntimeValue(
-    'EXPO_PUBLIC_GOOGLE_REDIRECT_URI',
-    'GOOGLE_REDIRECT_URI',
-    'googleRedirectUri'
+  googleClientSecret: readRuntimeValue(
+    'EXPO_PUBLIC_GOOGLE_CLIENT_SECRET',
+    'GOOGLE_CLIENT_SECRET',
+    'googleClientSecret'
   ),
 };
 

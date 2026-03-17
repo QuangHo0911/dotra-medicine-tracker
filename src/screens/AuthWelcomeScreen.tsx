@@ -1,20 +1,61 @@
-import React from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
+import { makeRedirectUri } from 'expo-auth-session';
+import * as Google from 'expo-auth-session/providers/google';
 import { RootStackParamList } from '../types';
 import { useAuth } from '../context/AuthContext';
+import { runtimeConfig } from '../config/runtime';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AuthWelcome'>;
 
-export const AuthWelcomeScreen: React.FC<Props> = ({ navigation }) => {
-  const { loginWithGoogle } = useAuth();
+/**
+ * In Expo Go the default makeRedirectUri returns an `exp://` URL that Google's
+ * web-type OAuth client rejects.  Expo Go intercepts redirects to
+ * `https://auth.expo.io/@owner/slug` as a universal-link, so we can use that
+ * as the redirect_uri for both the authorization request and the code exchange.
+ *
+ * In dev-builds / standalone the app's own scheme (`dotra://`) works because
+ * we can register an iOS or Android OAuth client for it.
+ */
+const getGoogleRedirectUri = (): string => {
+  if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient) {
+    const fullName = Constants.expoConfig?.originalFullName;
+    if (fullName) return `https://auth.expo.io/${fullName}`;
+  }
+  return makeRedirectUri({ scheme: 'dotra', path: 'oauthredirect' });
+};
 
-  const handleGoogle = async () => {
-    try {
-      await loginWithGoogle();
-    } catch (error) {
-      Alert.alert('Google sign-in', error instanceof Error ? error.message : 'Unable to sign in with Google right now.');
+export const AuthWelcomeScreen: React.FC<Props> = ({ navigation }) => {
+  const { loginWithGoogleIdToken } = useAuth();
+  const redirectUri = useMemo(getGoogleRedirectUri, []);
+
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+    clientId: runtimeConfig.googleWebClientId,
+    clientSecret: runtimeConfig.googleClientSecret || undefined,
+    redirectUri,
+  });
+
+  useEffect(() => {
+    if (response?.type === 'success') {
+      const idToken = response.params.id_token;
+      if (idToken) {
+        loginWithGoogleIdToken(idToken).catch((error) => {
+          Alert.alert('Google sign-in', error instanceof Error ? error.message : 'Unable to sign in with Google right now.');
+        });
+      } else {
+        Alert.alert('Google sign-in', 'No ID token received from Google.');
+      }
+    } else if (response?.type === 'error') {
+      Alert.alert('Google sign-in', response.error?.message || 'An error occurred during Google sign-in.');
     }
+  }, [response]);
+
+  const handleGoogle = () => {
+    promptAsync().catch((error) => {
+      Alert.alert('Google sign-in', error instanceof Error ? error.message : 'Unable to sign in with Google right now.');
+    });
   };
 
   return (
@@ -32,7 +73,7 @@ export const AuthWelcomeScreen: React.FC<Props> = ({ navigation }) => {
           </Text>
         </View>
 
-        <Pressable onPress={handleGoogle} style={{ backgroundColor: '#024039', borderRadius: 999, paddingVertical: 18, alignItems: 'center' }}>
+        <Pressable disabled={!request} onPress={handleGoogle} style={{ backgroundColor: '#024039', borderRadius: 999, paddingVertical: 18, alignItems: 'center', opacity: request ? 1 : 0.6 }}>
           <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700' }}>Continue with Google</Text>
         </Pressable>
         <Pressable onPress={() => navigation.navigate('Register')} style={{ backgroundColor: '#FFFFFF', borderRadius: 999, paddingVertical: 18, alignItems: 'center' }}>

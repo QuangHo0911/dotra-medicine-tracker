@@ -8,7 +8,7 @@ import {
   logout,
   registerWithEmail,
   sendResetEmail,
-  signInWithGoogle,
+  signInWithGoogleIdToken,
   subscribeToAuthState,
   updateStoredProfile,
 } from '../services/auth';
@@ -21,7 +21,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   register: (fullName: string, email: string, password: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
-  loginWithGoogle: () => Promise<void>;
+  loginWithGoogleIdToken: (idToken: string) => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
   logoutUser: () => Promise<void>;
   refreshProfile: (user?: User | null) => Promise<void>;
@@ -97,10 +97,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setIsLoading(false);
         }
       },
-      loginWithGoogle: async () => {
+      loginWithGoogleIdToken: async (idToken: string) => {
         setIsLoading(true);
         try {
-          const nextProfile = await signInWithGoogle();
+          const nextProfile = await signInWithGoogleIdToken(idToken);
           setProfile(nextProfile);
         } finally {
           setIsLoading(false);
