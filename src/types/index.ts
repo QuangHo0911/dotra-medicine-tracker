@@ -6,7 +6,7 @@ export interface Medicine {
   reminderTimes?: string[];
   remindersEnabled: boolean;
   startDate: string;
-  checks: { [date: string]: number };
+  checks: Record<string, number>;
   status: 'active' | 'completed';
   createdAt: string;
   updatedAt: string;
@@ -20,10 +20,38 @@ export interface MedicineFormData {
   remindersEnabled: boolean;
 }
 
+export type AuthProviderType = 'password' | 'google' | 'apple';
+
+export interface UserProfile {
+  uid: string;
+  email: string | null;
+  fullName: string;
+  firstName?: string;
+  lastName?: string;
+  avatarUrl?: string | null;
+  initials: string;
+  provider: AuthProviderType;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DailyCompletionSummary {
+  date: string;
+  streak: number;
+  totalDoses: number;
+  completedDoses: number;
+  progressPercentage: number;
+}
+
 export type RootStackParamList = {
+  AuthWelcome: undefined;
+  Login: undefined;
+  Register: undefined;
+  ForgotPassword: undefined;
   MainTabs: undefined;
   CreateMedicine: undefined;
   EditMedicine: { medicineId: string };
+  Completion: { summary: DailyCompletionSummary };
 };
 
 export type MainTabParamList = {

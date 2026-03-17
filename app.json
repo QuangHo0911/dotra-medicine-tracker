@@ -42,7 +42,9 @@
           "icon": "./assets/notification-icon.png",
           "color": "#4CAF50"
         }
-      ]
+      ],
+      "expo-web-browser",
+      "@react-native-community/datetimepicker"
     ]
   }
 }

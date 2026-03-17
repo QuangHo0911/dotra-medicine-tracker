@@ -1,15 +1,15 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
-import { Platform } from 'react-native';
 import { Medicine } from '../types';
-import { formatDate, formatTime } from '../utils/dateUtils';
+import { formatTime } from '../utils/dateUtils';
 
-// Configure notifications handler
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -32,7 +32,6 @@ export const requestNotificationPermissions = async (): Promise<boolean> => {
     return false;
   }
 
-  console.log('Notification permissions granted');
   return true;
 };
 
@@ -47,7 +46,6 @@ export const scheduleMedicineReminders = async (medicine: Medicine): Promise<str
     for (const time of medicine.reminderTimes) {
       const [hours, minutes] = time.split(':').map(Number);
 
-      // Schedule daily recurring notification
       const identifier = await Notifications.scheduleNotificationAsync({
         content: {
           title: 'Time for your medicine!',
@@ -55,7 +53,7 @@ export const scheduleMedicineReminders = async (medicine: Medicine): Promise<str
           data: { medicineId: medicine.id },
         },
         trigger: {
-          type: 'daily',
+          type: Notifications.SchedulableTriggerInputTypes.DAILY,
           hour: hours,
           minute: minutes,
         },
@@ -74,14 +72,12 @@ export const scheduleMedicineReminders = async (medicine: Medicine): Promise<str
 
 export const cancelMedicineReminders = async (medicineId: string): Promise<void> => {
   try {
-    // Get all scheduled notifications
     const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
 
-    // Cancel notifications that match this medicine
     for (const notification of scheduledNotifications) {
-      if (notification.content.data?.medicineId === medicineId) {
+      const dataMedicineId = notification.content.data?.medicineId;
+      if (typeof dataMedicineId === 'string' && dataMedicineId === medicineId) {
         await Notifications.cancelScheduledNotificationAsync(notification.identifier);
-        console.log('Cancelled reminder:', notification.identifier);
       }
     }
   } catch (error) {
@@ -92,18 +88,14 @@ export const cancelMedicineReminders = async (medicineId: string): Promise<void>
 export const cancelAllReminders = async (): Promise<void> => {
   try {
     await Notifications.cancelAllScheduledNotificationsAsync();
-    console.log('All reminders cancelled');
   } catch (error) {
     console.error('Error cancelling all reminders:', error);
   }
 };
 
 export const updateMedicineReminders = async (medicine: Medicine): Promise<string[]> => {
-  // Cancel existing reminders for this medicine
   await cancelMedicineReminders(medicine.id);
-
-  // Schedule new reminders
-  return await scheduleMedicineReminders(medicine);
+  return scheduleMedicineReminders(medicine);
 };
 
 export const getScheduledNotifications = async (): Promise<Notifications.NotificationRequest[]> => {
@@ -115,11 +107,10 @@ export const getScheduledNotifications = async (): Promise<Notifications.Notific
   }
 };
 
-// Set up notification tap handler
 export const setNotificationTapHandler = (callback: (medicineId: string) => void): void => {
   Notifications.addNotificationResponseReceivedListener((response) => {
     const medicineId = response.notification.request.content.data?.medicineId;
-    if (medicineId) {
+    if (typeof medicineId === 'string') {
       callback(medicineId);
     }
   });

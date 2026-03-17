@@ -1,104 +1,69 @@
 import {
   collection,
-  doc,
-  setDoc,
-  getDocs,
   deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
   query,
+  setDoc,
   where,
 } from 'firebase/firestore';
 import { db, auth, isFirebaseConfigured } from '../config/firebase';
-import { Medicine } from '../types';
+import { Medicine, UserProfile } from '../types';
 
 const MEDICINES_COLLECTION = 'medicines';
+const USERS_COLLECTION = 'users';
 
-// Helper to check if Firebase is available
 const ensureFirebase = (): boolean => {
-  if (!isFirebaseConfigured() || !db || !auth.currentUser) {
-    return false;
-  }
-  return true;
+  return !!(isFirebaseConfigured() && db && auth?.currentUser);
 };
 
 export const saveMedicineToFirebase = async (medicine: Medicine): Promise<boolean> => {
-  if (!ensureFirebase()) {
-    return false;
-  }
+  if (!ensureFirebase()) return false;
 
-  const userId = auth.currentUser?.uid;
+  const userId = auth?.currentUser?.uid;
   if (!userId) return false;
 
-  try {
-    const medicineRef = doc(db!, MEDICINES_COLLECTION, medicine.id);
-    await setDoc(medicineRef, {
-      ...medicine,
-      userId,
-    });
-    console.log('Medicine saved to Firebase:', medicine.id);
-    return true;
-  } catch (error) {
-    console.error('Error saving medicine to Firebase:', error);
-    throw error; // Let caller handle the error
-  }
+  await setDoc(doc(db!, MEDICINES_COLLECTION, medicine.id), { ...medicine, userId });
+  return true;
 };
 
 export const getMedicinesFromFirebase = async (): Promise<Medicine[]> => {
-  if (!ensureFirebase()) {
-    return [];
-  }
+  if (!ensureFirebase()) return [];
 
-  const userId = auth.currentUser?.uid;
+  const userId = auth?.currentUser?.uid;
   if (!userId) return [];
 
-  try {
-    const medicinesRef = collection(db!, MEDICINES_COLLECTION);
-    const q = query(medicinesRef, where('userId', '==', userId));
-    const querySnapshot = await getDocs(q);
+  const medicinesRef = collection(db!, MEDICINES_COLLECTION);
+  const snapshot = await getDocs(query(medicinesRef, where('userId', '==', userId)));
 
-    const medicines: Medicine[] = [];
-    querySnapshot.forEach((doc) => {
-      const data = doc.data() as Medicine & { userId: string };
-      delete (data as { userId?: string }).userId;
-      medicines.push(data);
-    });
-
-    console.log('Medicines fetched from Firebase:', medicines.length);
-    return medicines;
-  } catch (error) {
-    console.error('Error fetching medicines from Firebase:', error);
-    throw error;
-  }
+  return snapshot.docs.map((snapshotDoc) => {
+    const data = snapshotDoc.data() as Medicine & { userId: string };
+    delete (data as { userId?: string }).userId;
+    return data;
+  });
 };
 
 export const deleteMedicineFromFirebase = async (medicineId: string): Promise<boolean> => {
-  if (!ensureFirebase()) {
-    return false;
-  }
-
-  try {
-    const medicineRef = doc(db!, MEDICINES_COLLECTION, medicineId);
-    await deleteDoc(medicineRef);
-    console.log('Medicine deleted from Firebase:', medicineId);
-    return true;
-  } catch (error) {
-    console.error('Error deleting medicine from Firebase:', error);
-    throw error;
-  }
+  if (!ensureFirebase()) return false;
+  await deleteDoc(doc(db!, MEDICINES_COLLECTION, medicineId));
+  return true;
 };
 
 export const syncMedicinesToFirebase = async (medicines: Medicine[]): Promise<boolean> => {
-  if (!ensureFirebase()) {
-    return false;
-  }
+  if (!ensureFirebase()) return false;
+  await Promise.all(medicines.map((medicine) => saveMedicineToFirebase(medicine)));
+  return true;
+};
 
-  try {
-    for (const medicine of medicines) {
-      await saveMedicineToFirebase(medicine);
-    }
-    console.log('All medicines synced to Firebase');
-    return true;
-  } catch (error) {
-    console.error('Error syncing medicines to Firebase:', error);
-    throw error;
-  }
+export const saveUserProfileToFirebase = async (profile: UserProfile): Promise<boolean> => {
+  if (!isFirebaseConfigured() || !db) return false;
+  await setDoc(doc(db, USERS_COLLECTION, profile.uid), profile, { merge: true });
+  return true;
+};
+
+export const getUserProfileFromFirebase = async (uid: string): Promise<UserProfile | null> => {
+  if (!isFirebaseConfigured() || !db) return null;
+  const snapshot = await getDoc(doc(db, USERS_COLLECTION, uid));
+  return snapshot.exists() ? (snapshot.data() as UserProfile) : null;
 };

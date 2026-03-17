@@ -1,132 +1,134 @@
 import React, {
   createContext,
-  useContext,
-  useState,
-  useEffect,
   useCallback,
-  ReactNode,
+  useContext,
+  useEffect,
   useMemo,
+  useState,
 } from 'react';
 import * as Crypto from 'expo-crypto';
-import { Medicine, MedicineFormData } from '../types';
-import { loadMedicines, saveMedicines } from '../services/storage';
+import { DailyCompletionSummary, Medicine, MedicineFormData } from '../types';
 import {
-  saveMedicineToFirebase,
+  loadCompletionScreenSeen,
+  loadMedicines,
+  saveCompletionScreenSeen,
+  saveMedicines,
+} from '../services/storage';
+import {
   deleteMedicineFromFirebase,
   getMedicinesFromFirebase,
+  saveMedicineToFirebase,
   syncMedicinesToFirebase,
 } from '../services/firebase';
-import { authenticateUser } from '../config/firebase';
 import {
+  getCurrentStreak,
+  getDailyDoseStats,
   getToday,
   isMedicineCompleted,
 } from '../utils/dateUtils';
 import {
-  scheduleMedicineReminders,
   cancelMedicineReminders,
+  scheduleMedicineReminders,
   updateMedicineReminders,
 } from '../services/notifications';
+import { useAuth } from './AuthContext';
 
 interface MedicineContextType {
   medicines: Medicine[];
   isLoading: boolean;
-  userId: string | null;
   createMedicine: (data: MedicineFormData) => Promise<Medicine>;
   updateMedicine: (id: string, data: Partial<MedicineFormData>) => Promise<void>;
   deleteMedicine: (id: string) => Promise<void>;
-  checkMedicine: (id: string, date?: string) => Promise<void>;
+  checkMedicine: (id: string, date?: string) => Promise<DailyCompletionSummary | null>;
   uncheckMedicine: (id: string, date?: string) => Promise<void>;
   getMedicine: (id: string) => Medicine | undefined;
   syncWithFirebase: () => Promise<void>;
   refreshMedicines: () => Promise<void>;
+  getDailySummary: (date?: string) => DailyCompletionSummary;
 }
 
 const MedicineContext = createContext<MedicineContextType | undefined>(undefined);
 
-export const MedicineProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Initialize: authenticate and load data
-  useEffect(() => {
-    const initialize = async () => {
-      setIsLoading(true);
-
-      try {
-        // Load medicines from local storage first (fast)
-        const localMedicines = await loadMedicines();
-        setMedicines(localMedicines);
-
-        // Then try to authenticate and sync with Firebase (async)
-        const uid = await authenticateUser();
-        setUserId(uid);
-
-        if (uid) {
-          try {
-            const firebaseMedicines = await getMedicinesFromFirebase();
-            if (firebaseMedicines.length > 0) {
-              // Merge: prefer Firebase data if conflict
-              const merged = mergeMedicines(localMedicines, firebaseMedicines);
-              setMedicines(merged);
-              await saveMedicines(merged);
-            } else if (localMedicines.length > 0) {
-              // Upload local medicines to Firebase
-              await syncMedicinesToFirebase(localMedicines);
-            }
-          } catch (firebaseError) {
-            // Firebase errors shouldn't block the app - data is saved locally
-            console.warn('Firebase sync failed, using local data:', firebaseError);
-          }
-        }
-      } catch (error) {
-        console.error('Initialization error:', error);
-      } finally {
-        setIsLoading(false);
-        setIsInitialized(true);
-      }
-    };
-
-    initialize();
-  }, []);
-
-  // Merge medicines from local and Firebase
-  const mergeMedicines = useCallback((local: Medicine[], firebase: Medicine[]): Medicine[] => {
+  const mergeMedicines = useCallback((local: Medicine[], remote: Medicine[]) => {
     const merged: Medicine[] = [];
-    const allIds = new Set([...local.map(m => m.id), ...firebase.map(m => m.id)]);
+    const allIds = new Set([...local.map((m) => m.id), ...remote.map((m) => m.id)]);
 
-    allIds.forEach(id => {
-      const localMed = local.find(m => m.id === id);
-      const firebaseMed = firebase.find(m => m.id === id);
-
-      if (localMed && firebaseMed) {
-        // Prefer the one with the later updatedAt
-        merged.push(
-          new Date(localMed.updatedAt) > new Date(firebaseMed.updatedAt)
-            ? localMed
-            : firebaseMed
-        );
+    allIds.forEach((id) => {
+      const localMed = local.find((m) => m.id === id);
+      const remoteMed = remote.find((m) => m.id === id);
+      if (localMed && remoteMed) {
+        merged.push(new Date(localMed.updatedAt) > new Date(remoteMed.updatedAt) ? localMed : remoteMed);
       } else if (localMed) {
         merged.push(localMed);
-      } else if (firebaseMed) {
-        merged.push(firebaseMed);
+      } else if (remoteMed) {
+        merged.push(remoteMed);
       }
     });
 
     return merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, []);
 
-  // Create new medicine
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const localMedicines = await loadMedicines();
+      setMedicines(localMedicines);
+
+      if (user) {
+        try {
+          const remoteMedicines = await getMedicinesFromFirebase();
+          const merged = mergeMedicines(localMedicines, remoteMedicines);
+          setMedicines(merged);
+          await saveMedicines(merged);
+          if (remoteMedicines.length === 0 && localMedicines.length > 0) {
+            await syncMedicinesToFirebase(localMedicines);
+          }
+        } catch (error) {
+          console.warn('Firebase sync failed, using local medicines', error);
+        }
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [mergeMedicines, user]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const getDailySummary = useCallback(
+    (date: string = getToday()): DailyCompletionSummary => {
+      const stats = getDailyDoseStats(medicines, date);
+      return {
+        date,
+        streak: getCurrentStreak(medicines, date),
+        totalDoses: stats.totalDoses,
+        completedDoses: stats.completedDoses,
+        progressPercentage: stats.progressPercentage,
+      };
+    },
+    [medicines]
+  );
+
+  const persistMedicines = useCallback(async (nextMedicines: Medicine[]) => {
+    setMedicines(nextMedicines);
+    await saveMedicines(nextMedicines);
+  }, []);
+
   const createMedicine = useCallback(async (data: MedicineFormData): Promise<Medicine> => {
     const now = new Date().toISOString();
-    const newMedicine: Medicine = {
+    const medicine: Medicine = {
       id: Crypto.randomUUID(),
-      name: data.name,
+      name: data.name.trim(),
       timesPerDay: data.timesPerDay,
       durationDays: data.durationDays,
-      reminderTimes: data.reminderTimes || [],
       remindersEnabled: data.remindersEnabled,
+      reminderTimes: data.remindersEnabled ? data.reminderTimes || [] : [],
       startDate: getToday(),
       checks: {},
       status: 'active',
@@ -134,224 +136,155 @@ export const MedicineProvider: React.FC<{ children: ReactNode }> = ({ children }
       updatedAt: now,
     };
 
-    // Update state and local storage first (optimistic)
-    const updatedMedicines = [newMedicine, ...medicines];
-    setMedicines(updatedMedicines);
-    await saveMedicines(updatedMedicines);
+    const nextMedicines = [medicine, ...medicines];
+    await persistMedicines(nextMedicines);
+    await saveMedicineToFirebase(medicine).catch(() => false);
 
-    // Try Firebase in background (don't block on failure)
-    try {
-      await saveMedicineToFirebase(newMedicine);
-    } catch (firebaseError) {
-      console.warn('Firebase save failed, medicine saved locally:', firebaseError);
+    if (medicine.remindersEnabled && medicine.reminderTimes?.length) {
+      scheduleMedicineReminders(medicine).catch((error) => console.warn('Reminder scheduling failed', error));
     }
 
-    // Schedule reminders if enabled (don't block)
-    if (newMedicine.remindersEnabled && newMedicine.reminderTimes?.length) {
-      scheduleMedicineReminders(newMedicine).catch(err => 
-        console.warn('Failed to schedule reminders:', err)
-      );
-    }
+    return medicine;
+  }, [medicines, persistMedicines]);
 
-    return newMedicine;
-  }, [medicines]);
-
-  // Update existing medicine
-  const updateMedicine = useCallback(async (id: string, data: Partial<MedicineFormData>): Promise<void> => {
-    const medicine = medicines.find(m => m.id === id);
+  const updateMedicine = useCallback(async (id: string, data: Partial<MedicineFormData>) => {
+    const medicine = medicines.find((item) => item.id === id);
     if (!medicine) return;
 
-    const updatedMedicine: Medicine = {
+    const updated: Medicine = {
       ...medicine,
       ...data,
+      reminderTimes: data.remindersEnabled === false ? [] : data.reminderTimes ?? medicine.reminderTimes,
       updatedAt: new Date().toISOString(),
     };
 
-    const updatedMedicines = medicines.map(m => (m.id === id ? updatedMedicine : m));
-    setMedicines(updatedMedicines);
-    await saveMedicines(updatedMedicines);
+    const nextMedicines = medicines.map((item) => (item.id === id ? updated : item));
+    await persistMedicines(nextMedicines);
+    await saveMedicineToFirebase(updated).catch(() => false);
+    updateMedicineReminders(updated).catch((error) => console.warn('Reminder update failed', error));
+  }, [medicines, persistMedicines]);
 
-    // Try Firebase in background
-    try {
-      await saveMedicineToFirebase(updatedMedicine);
-    } catch (firebaseError) {
-      console.warn('Firebase update failed, changes saved locally:', firebaseError);
-    }
+  const deleteMedicine = useCallback(async (id: string) => {
+    const nextMedicines = medicines.filter((medicine) => medicine.id !== id);
+    await persistMedicines(nextMedicines);
+    await deleteMedicineFromFirebase(id).catch(() => false);
+    cancelMedicineReminders(id).catch((error) => console.warn('Reminder cancel failed', error));
+  }, [medicines, persistMedicines]);
 
-    // Update reminders in background
-    updateMedicineReminders(updatedMedicine).catch(err =>
-      console.warn('Failed to update reminders:', err)
-    );
-  }, [medicines]);
-
-  // Delete medicine
-  const deleteMedicine = useCallback(async (id: string): Promise<void> => {
-    const updatedMedicines = medicines.filter(m => m.id !== id);
-    setMedicines(updatedMedicines);
-    await saveMedicines(updatedMedicines);
-
-    // Try Firebase in background
-    try {
-      await deleteMedicineFromFirebase(id);
-    } catch (firebaseError) {
-      console.warn('Firebase delete failed, medicine deleted locally:', firebaseError);
-    }
-
-    // Cancel reminders in background
-    cancelMedicineReminders(id).catch(err =>
-      console.warn('Failed to cancel reminders:', err)
-    );
-  }, [medicines]);
-
-  // Check a dose (increment checks for today)
-  const checkMedicine = useCallback(async (id: string, date: string = getToday()): Promise<void> => {
-    const medicine = medicines.find(m => m.id === id);
-    if (!medicine) return;
+  const checkMedicine = useCallback(async (id: string, date: string = getToday()) => {
+    const medicine = medicines.find((item) => item.id === id);
+    if (!medicine) return null;
 
     const currentChecks = medicine.checks[date] || 0;
-    if (currentChecks >= medicine.timesPerDay) return;
-
-    const updatedChecks = {
-      ...medicine.checks,
-      [date]: currentChecks + 1,
-    };
-
-    const isCompleted = isMedicineCompleted({
-      ...medicine,
-      checks: updatedChecks,
-    });
+    if (currentChecks >= medicine.timesPerDay) return null;
 
     const updatedMedicine: Medicine = {
       ...medicine,
-      checks: updatedChecks,
-      status: isCompleted ? 'completed' : 'active',
+      checks: { ...medicine.checks, [date]: currentChecks + 1 },
+      status: isMedicineCompleted({ ...medicine, checks: { ...medicine.checks, [date]: currentChecks + 1 } })
+        ? 'completed'
+        : 'active',
       updatedAt: new Date().toISOString(),
     };
 
-    const updatedMedicines = medicines.map(m => (m.id === id ? updatedMedicine : m));
-    setMedicines(updatedMedicines);
-    await saveMedicines(updatedMedicines);
+    const nextMedicines = medicines.map((item) => (item.id === id ? updatedMedicine : item));
+    await persistMedicines(nextMedicines);
+    await saveMedicineToFirebase(updatedMedicine).catch(() => false);
 
-    // Try Firebase in background
-    try {
-      await saveMedicineToFirebase(updatedMedicine);
-    } catch (firebaseError) {
-      console.warn('Firebase check update failed, changes saved locally:', firebaseError);
-    }
-  }, [medicines]);
+    const stats = getDailyDoseStats(nextMedicines, date);
+    if (!stats.allDone) return null;
 
-  // Uncheck a dose (decrement checks for today)
-  const uncheckMedicine = useCallback(async (id: string, date: string = getToday()): Promise<void> => {
-    const medicine = medicines.find(m => m.id === id);
+    const summary: DailyCompletionSummary = {
+      date,
+      streak: getCurrentStreak(nextMedicines, date),
+      totalDoses: stats.totalDoses,
+      completedDoses: stats.completedDoses,
+      progressPercentage: stats.progressPercentage,
+    };
+
+    const seenDate = await loadCompletionScreenSeen();
+    if (seenDate === date) return null;
+    await saveCompletionScreenSeen(date);
+    return summary;
+  }, [medicines, persistMedicines]);
+
+  const uncheckMedicine = useCallback(async (id: string, date: string = getToday()) => {
+    const medicine = medicines.find((item) => item.id === id);
     if (!medicine) return;
 
     const currentChecks = medicine.checks[date] || 0;
     if (currentChecks <= 0) return;
 
-    const updatedChecks = {
-      ...medicine.checks,
-      [date]: currentChecks - 1,
-    };
-
     const updatedMedicine: Medicine = {
       ...medicine,
-      checks: updatedChecks,
+      checks: { ...medicine.checks, [date]: currentChecks - 1 },
       status: 'active',
       updatedAt: new Date().toISOString(),
     };
 
-    const updatedMedicines = medicines.map(m => (m.id === id ? updatedMedicine : m));
-    setMedicines(updatedMedicines);
-    await saveMedicines(updatedMedicines);
+    const nextMedicines = medicines.map((item) => (item.id === id ? updatedMedicine : item));
+    await persistMedicines(nextMedicines);
+    await saveMedicineToFirebase(updatedMedicine).catch(() => false);
+  }, [medicines, persistMedicines]);
 
-    // Try Firebase in background
-    try {
-      await saveMedicineToFirebase(updatedMedicine);
-    } catch (firebaseError) {
-      console.warn('Firebase uncheck update failed, changes saved locally:', firebaseError);
-    }
-  }, [medicines]);
+  const getMedicine = useCallback((id: string) => medicines.find((medicine) => medicine.id === id), [medicines]);
 
-  // Get a single medicine by ID
-  const getMedicine = useCallback((id: string): Medicine | undefined => {
-    return medicines.find(m => m.id === id);
-  }, [medicines]);
-
-  // Sync all medicines with Firebase
-  const syncWithFirebase = useCallback(async (): Promise<void> => {
-    if (!userId) {
-      console.warn('No user authenticated, cannot sync');
-      return;
-    }
-
+  const syncWithFirebase = useCallback(async () => {
+    if (!user) return;
     setIsLoading(true);
     try {
       await syncMedicinesToFirebase(medicines);
-      console.log('Sync completed successfully');
-    } catch (error) {
-      console.error('Sync error:', error);
-      throw error;
     } finally {
       setIsLoading(false);
     }
-  }, [medicines, userId]);
+  }, [medicines, user]);
 
-  // Refresh medicines from Firebase
-  const refreshMedicines = useCallback(async (): Promise<void> => {
-    if (!userId) return;
-
+  const refreshMedicines = useCallback(async () => {
+    if (!user) return;
     setIsLoading(true);
     try {
-      const firebaseMedicines = await getMedicinesFromFirebase();
-      const merged = mergeMedicines(medicines, firebaseMedicines);
-      setMedicines(merged);
-      await saveMedicines(merged);
-    } catch (error) {
-      console.error('Refresh error:', error);
-      throw error;
+      const remote = await getMedicinesFromFirebase();
+      const merged = mergeMedicines(medicines, remote);
+      await persistMedicines(merged);
     } finally {
       setIsLoading(false);
     }
-  }, [medicines, userId, mergeMedicines]);
+  }, [medicines, mergeMedicines, persistMedicines, user]);
 
-  // Memoize context value to prevent unnecessary re-renders
-  const contextValue = useMemo(() => ({
-    medicines,
-    isLoading,
-    userId,
-    createMedicine,
-    updateMedicine,
-    deleteMedicine,
-    checkMedicine,
-    uncheckMedicine,
-    getMedicine,
-    syncWithFirebase,
-    refreshMedicines,
-  }), [
-    medicines,
-    isLoading,
-    userId,
-    createMedicine,
-    updateMedicine,
-    deleteMedicine,
-    checkMedicine,
-    uncheckMedicine,
-    getMedicine,
-    syncWithFirebase,
-    refreshMedicines,
-  ]);
-
-  return (
-    <MedicineContext.Provider value={contextValue}>
-      {children}
-    </MedicineContext.Provider>
+  const value = useMemo(
+    () => ({
+      medicines,
+      isLoading,
+      createMedicine,
+      updateMedicine,
+      deleteMedicine,
+      checkMedicine,
+      uncheckMedicine,
+      getMedicine,
+      syncWithFirebase,
+      refreshMedicines,
+      getDailySummary,
+    }),
+    [
+      medicines,
+      isLoading,
+      createMedicine,
+      updateMedicine,
+      deleteMedicine,
+      checkMedicine,
+      uncheckMedicine,
+      getMedicine,
+      syncWithFirebase,
+      refreshMedicines,
+      getDailySummary,
+    ]
   );
+
+  return <MedicineContext.Provider value={value}>{children}</MedicineContext.Provider>;
 };
 
-export const useMedicine = (): MedicineContextType => {
+export const useMedicine = () => {
   const context = useContext(MedicineContext);
-  if (context === undefined) {
-    throw new Error('useMedicine must be used within a MedicineProvider');
-  }
+  if (!context) throw new Error('useMedicine must be used within MedicineProvider');
   return context;
 };

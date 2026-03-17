@@ -1,18 +1,14 @@
-import React, { useState, useCallback } from 'react';
-import {
-  View,
-  FlatList,
-  TouchableOpacity,
-  RefreshControl,
-} from 'react-native';
-import { Pill, Plus } from 'lucide-react-native';
-import { MedicineCard } from '../components/MedicineCard';
-import { useMedicine } from '../context/MedicineContext';
-import { Medicine, RootStackParamList } from '../types';
+import React, { useMemo, useState } from 'react';
+import { FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
+import { Plus, Sparkles } from 'lucide-react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Text } from '../components/ui/Text';
-import { Button } from '../components/ui/Button';
-import { cn } from '../utils/cn';
+import { Medicine, RootStackParamList } from '../types';
+import { useMedicine } from '../context/MedicineContext';
+import { useAuth } from '../context/AuthContext';
+import { MedicineCard } from '../components/MedicineCard';
+import { CalendarStrip } from '../components/CalendarStrip';
+import { InitialsAvatar } from '../components/InitialsAvatar';
+import { formatHeaderDate, getCurrentStreak, getStreakDates, getToday } from '../utils/dateUtils';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -21,81 +17,178 @@ interface HomeScreenProps {
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
-  const { medicines, isLoading, refreshMedicines } = useMedicine();
+  const { medicines, refreshMedicines, getDailySummary } = useMedicine();
+  const { profile } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
+  const streakDates = useMemo(() => getStreakDates(medicines), [medicines]);
+  const summary = useMemo(() => getDailySummary(getToday()), [getDailySummary]);
+  const streak = useMemo(() => getCurrentStreak(medicines), [medicines]);
 
-  const handleEdit = useCallback((medicine: Medicine) => {
-    navigation.navigate('EditMedicine', { medicineId: medicine.id });
-  }, [navigation]);
-
-  const onRefresh = useCallback(async () => {
+  const onRefresh = async () => {
     setRefreshing(true);
     try {
       await refreshMedicines();
     } finally {
       setRefreshing(false);
     }
-  }, [refreshMedicines]);
+  };
 
-  const renderMedicine = useCallback(({ item }: { item: Medicine }) => (
-    <MedicineCard medicine={item} onEdit={handleEdit} />
-  ), [handleEdit]);
-
-  const keyExtractor = useCallback((item: Medicine) => item.id, []);
-
-  const renderEmptyState = useCallback(() => (
-    <View className="flex-1 justify-center items-center px-8">
-      <View className="w-36 h-36 rounded-full bg-success-light justify-center items-center mb-6">
-        <Pill size={80} color="#4CAF50" />
-      </View>
-      <Text variant="h3" className="mb-3">No Medicines Yet</Text>
-      <Text variant="body" color="secondary" className="text-center mb-6">
-        Keep track of your medications and never miss a dose. Tap the button below to add your first medicine.
-      </Text>
-
-      <Button
-        variant="primary"
-        size="md"
-        leftIcon={<Plus size={20} color="#fff" />}
-        onPress={() => navigation.navigate('CreateMedicine')}
-      >
-        Add Your First Medicine
-      </Button>
-    </View>
-  ), [navigation]);
+  const renderItem = ({ item }: { item: Medicine }) => (
+    <MedicineCard
+      medicine={item}
+      onEdit={(medicine) => navigation.navigate('EditMedicine', { medicineId: medicine.id })}
+    />
+  );
 
   return (
-    <View className="flex-1 bg-background">
+    <View style={{ flex: 1, backgroundColor: '#F1EEE7' }}>
+      <View
+        style={{
+          backgroundColor: '#024039',
+          paddingTop: 56,
+          paddingHorizontal: 24,
+          paddingBottom: 22,
+          borderBottomLeftRadius: 32,
+          borderBottomRightRadius: 32,
+        }}
+      >
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 22 }}>
+          <View>
+            <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, marginBottom: 4 }}>
+              {formatHeaderDate(new Date())}
+            </Text>
+            <Text style={{ color: '#FFF', fontSize: 32, fontWeight: '600' }}>My Medicines</Text>
+          </View>
+          <InitialsAvatar initials={profile?.initials || 'DT'} avatarUrl={profile?.avatarUrl} />
+        </View>
+        <CalendarStrip streakDates={streakDates} />
+      </View>
+
       <FlatList
         data={medicines}
-        renderItem={renderMedicine}
-        keyExtractor={keyExtractor}
-        contentContainerClassName={cn(
-          "py-3 flex-grow",
-          medicines.length === 0 && "justify-center"
-        )}
-        ListEmptyComponent={renderEmptyState}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor="#4CAF50"
-            colors={['#4CAF50']}
-          />
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#024039" />}
+        contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: 160, flexGrow: medicines.length === 0 ? 1 : undefined }}
+        ListHeaderComponent={
+          medicines.length ? (
+            <View style={{ backgroundColor: '#FFF', borderRadius: 24, padding: 20 }}>
+              <Text style={{ color: '#6B6B6B', fontSize: 14, marginBottom: 6 }}>Today</Text>
+              <Text style={{ color: '#141414', fontSize: 28, fontWeight: '700', marginBottom: 12 }}>
+                {summary.completedDoses} / {summary.totalDoses || 0} doses
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <View style={{ flex: 1, backgroundColor: '#F8F9F7', borderRadius: 18, padding: 14 }}>
+                  <Text style={{ color: '#6B6B6B', fontSize: 12, textTransform: 'uppercase', marginBottom: 4 }}>
+                    Progress
+                  </Text>
+                  <Text style={{ color: '#024039', fontSize: 20, fontWeight: '700' }}>{summary.progressPercentage}%</Text>
+                </View>
+                <View style={{ flex: 1, backgroundColor: '#F8F9F7', borderRadius: 18, padding: 14 }}>
+                  <Text style={{ color: '#6B6B6B', fontSize: 12, textTransform: 'uppercase', marginBottom: 4 }}>
+                    Streak
+                  </Text>
+                  <Text style={{ color: '#024039', fontSize: 20, fontWeight: '700' }}>
+                    {streak} day{streak === 1 ? '' : 's'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          ) : null
         }
-        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 }}>
+            <View
+              style={{
+                width: 240,
+                height: 240,
+                borderRadius: 120,
+                backgroundColor: 'rgba(255,255,255,0.45)',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 28,
+              }}
+            >
+              <View
+                style={{
+                  width: 120,
+                  height: 120,
+                  borderRadius: 24,
+                  backgroundColor: '#E4DDCB',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transform: [{ rotate: '-10deg' }],
+                }}
+              >
+                <Sparkles size={52} color="#024039" />
+              </View>
+              <View
+                style={{
+                  position: 'absolute',
+                  top: 28,
+                  right: 18,
+                  backgroundColor: '#FFF',
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  borderRadius: 999,
+                }}
+              >
+                <Text style={{ color: '#0A655A', fontWeight: '700', fontSize: 12 }}>Health</Text>
+              </View>
+              <View
+                style={{
+                  position: 'absolute',
+                  left: 8,
+                  bottom: 38,
+                  backgroundColor: '#FFF',
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  borderRadius: 999,
+                }}
+              >
+                <Text style={{ color: '#0A655A', fontWeight: '700', fontSize: 12 }}>Daily</Text>
+              </View>
+            </View>
+            <Text style={{ color: '#141414', fontSize: 28, fontWeight: '700', marginBottom: 10 }}>
+              Your kit is empty
+            </Text>
+            <Text
+              style={{
+                color: '#6B6B6B',
+                fontSize: 16,
+                textAlign: 'center',
+                lineHeight: 24,
+                marginBottom: 26,
+              }}
+            >
+              Add your medications to receive reminders and stay on track with your health journey.
+            </Text>
+            <Pressable
+              onPress={() => navigation.navigate('CreateMedicine')}
+              style={{ backgroundColor: '#024039', borderRadius: 999, paddingVertical: 18, paddingHorizontal: 28 }}
+            >
+              <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700' }}>Add Your First Medicine</Text>
+            </Pressable>
+          </View>
+        }
       />
 
-      {medicines.length > 0 && (
-        <TouchableOpacity
-          className="absolute right-5 bottom-5 w-16 h-16 rounded-full bg-primary justify-center items-center shadow-fab active:opacity-80"
-          onPress={() => navigation.navigate('CreateMedicine')}
-          activeOpacity={0.8}
-        >
-          <Plus size={28} color="#fff" />
-        </TouchableOpacity>
-      )}
+      <Pressable
+        onPress={() => navigation.navigate('CreateMedicine')}
+        style={{
+          position: 'absolute',
+          right: 24,
+          bottom: 112,
+          width: 64,
+          height: 64,
+          borderRadius: 32,
+          backgroundColor: '#024039',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Plus color="#FFF" size={28} />
+      </Pressable>
     </View>
   );
 };
-

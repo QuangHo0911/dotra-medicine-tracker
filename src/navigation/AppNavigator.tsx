@@ -1,109 +1,91 @@
 import React from 'react';
-import { TouchableOpacity } from 'react-native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { Text, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Pill, Settings, ChevronLeft } from 'lucide-react-native';
-import { HomeScreen } from '../screens/HomeScreen';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { Pill, Settings } from 'lucide-react-native';
+import { useAuth } from '../context/AuthContext';
+import { MainTabParamList, RootStackParamList } from '../types';
+import { AuthWelcomeScreen } from '../screens/AuthWelcomeScreen';
+import { CompletionScreen } from '../screens/CompletionScreen';
 import { CreateMedicineScreen } from '../screens/CreateMedicineScreen';
 import { EditMedicineScreen } from '../screens/EditMedicineScreen';
+import { ForgotPasswordScreen } from '../screens/ForgotPasswordScreen';
+import { HomeScreen } from '../screens/HomeScreen';
+import { LoginScreen } from '../screens/LoginScreen';
+import { RegisterScreen } from '../screens/RegisterScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
-import { RootStackParamList, MainTabParamList } from '../types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
-const MainTabs: React.FC = () => {
-  const insets = useSafeAreaInsets();
-
-  return (
-    <Tab.Navigator
-      screenOptions={{
-        tabBarActiveTintColor: '#4CAF50',
-        tabBarInactiveTintColor: '#999',
-        tabBarStyle: {
-          paddingBottom: 8 + insets.bottom,
-          paddingTop: 8,
-          height: 60 + insets.bottom,
-        },
-        headerStyle: {
-          backgroundColor: '#4CAF50',
-        },
-        headerTintColor: '#fff',
-        headerTitleStyle: {
-          fontWeight: '600',
-        },
+const MainTabs = () => (
+  <Tab.Navigator
+    screenOptions={{
+      headerShown: false,
+      tabBarStyle: {
+        position: 'absolute',
+        left: 20,
+        right: 20,
+        bottom: 24,
+        height: 72,
+        paddingTop: 10,
+        paddingBottom: 10,
+        borderRadius: 999,
+        backgroundColor: 'rgba(255,255,255,0.95)',
+      },
+      tabBarActiveTintColor: '#024039',
+      tabBarInactiveTintColor: '#6B6B6B',
+      tabBarLabelStyle: { fontSize: 14, fontWeight: '600' },
+    }}
+  >
+    <Tab.Screen
+      name="Home"
+      component={HomeScreen}
+      options={{
+        tabBarLabel: 'Medicines',
+        tabBarIcon: ({ color, size }) => <Pill color={color} size={size} />,
       }}
-    >
-      <Tab.Screen
-        name="Home"
-        component={HomeScreen}
-        options={{
-          title: 'My Medicines',
-          tabBarLabel: 'Medicines',
-          tabBarIcon: ({ color, size }) => (
-            <Pill color={color} size={size} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Settings"
-        component={SettingsScreen}
-        options={{
-          title: 'Settings',
-          tabBarIcon: ({ color, size }) => (
-            <Settings color={color} size={size} />
-          ),
-        }}
-      />
-    </Tab.Navigator>
-  );
-};
+    />
+    <Tab.Screen
+      name="Settings"
+      component={SettingsScreen}
+      options={{
+        tabBarIcon: ({ color, size }) => <Settings color={color} size={size} />,
+      }}
+    />
+  </Tab.Navigator>
+);
+
+const LoadingScreen = () => (
+  <View style={{ flex: 1, backgroundColor: '#F1EEE7', alignItems: 'center', justifyContent: 'center' }}>
+    <Text style={{ color: '#024039', fontSize: 20, fontWeight: '700' }}>Dotra is waking up…</Text>
+  </View>
+);
 
 export const AppNavigator: React.FC = () => {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
+
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerStyle: {
-          backgroundColor: '#4CAF50',
-        },
-        headerTintColor: '#fff',
-        headerTitleStyle: {
-          fontWeight: '600',
-        },
-      }}
-    >
-      <Stack.Screen
-        name="MainTabs"
-        component={MainTabs}
-        options={{ headerShown: false, headerBackTitle: '' }}
-      />
-      <Stack.Screen
-        name="CreateMedicine"
-        component={CreateMedicineScreen}
-        options={({ navigation }) => ({
-          title: 'Add Medicine',
-          headerBackVisible: false,
-          headerLeft: () => (
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-              <ChevronLeft color="#fff" size={28} />
-            </TouchableOpacity>
-          ),
-        })}
-      />
-      <Stack.Screen
-        name="EditMedicine"
-        component={EditMedicineScreen}
-        options={({ navigation }) => ({
-          title: 'Edit Medicine',
-          headerBackVisible: false,
-          headerLeft: () => (
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-              <ChevronLeft color="#fff" size={28} />
-            </TouchableOpacity>
-          ),
-        })}
-      />
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      {!isAuthenticated ? (
+        <>
+          <Stack.Screen name="AuthWelcome" component={AuthWelcomeScreen} />
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Register" component={RegisterScreen} />
+          <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+        </>
+      ) : (
+        <>
+          <Stack.Screen name="MainTabs" component={MainTabs} />
+          <Stack.Screen name="CreateMedicine" component={CreateMedicineScreen} />
+          <Stack.Screen name="EditMedicine" component={EditMedicineScreen} />
+          <Stack.Screen name="Completion" component={CompletionScreen} />
+        </>
+      )}
     </Stack.Navigator>
   );
 };
