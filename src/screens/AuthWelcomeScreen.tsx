@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import Constants, { ExecutionEnvironment } from 'expo-constants';
-import { makeRedirectUri } from 'expo-auth-session';
+import Constants from 'expo-constants';
 import * as Google from 'expo-auth-session/providers/google';
 import { RootStackParamList } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -11,20 +10,25 @@ import { runtimeConfig } from '../config/runtime';
 type Props = NativeStackScreenProps<RootStackParamList, 'AuthWelcome'>;
 
 /**
- * In Expo Go the default makeRedirectUri returns an `exp://` URL that Google's
- * web-type OAuth client rejects.  Expo Go intercepts redirects to
- * `https://auth.expo.io/@owner/slug` as a universal-link, so we can use that
- * as the redirect_uri for both the authorization request and the code exchange.
+ * Build the redirect URI that matches the one registered in the Google OAuth
+ * client: `https://auth.expo.io/@owner/slug`.  We derive it from the owner
+ * and slug fields in app.json (available via Constants.expoConfig) so it stays
+ * correct without hard-coding.
  *
- * In dev-builds / standalone the app's own scheme (`dotra://`) works because
- * we can register an iOS or Android OAuth client for it.
+ * Google's web-type OAuth client only accepts https:// redirect URIs, so the
+ * default `makeRedirectUri()` (which returns `exp://…` in Expo Go) cannot be
+ * used here.
  */
 const getGoogleRedirectUri = (): string => {
-  if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient) {
-    const fullName = Constants.expoConfig?.originalFullName;
-    if (fullName) return `https://auth.expo.io/${fullName}`;
+  const owner = Constants.expoConfig?.owner;
+  const slug = Constants.expoConfig?.slug;
+  if (owner && slug) {
+    return `https://auth.expo.io/@${owner}/${slug}`;
   }
-  return makeRedirectUri({ scheme: 'dotra', path: 'oauthredirect' });
+  // Fallback: should never happen when app.json has owner + slug
+  throw new Error(
+    'Cannot build Google redirect URI: app.json must define "owner" and "slug".'
+  );
 };
 
 export const AuthWelcomeScreen: React.FC<Props> = ({ navigation }) => {
