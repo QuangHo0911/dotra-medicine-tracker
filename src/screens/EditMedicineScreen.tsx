@@ -231,8 +231,8 @@ export const EditMedicineScreen: React.FC<EditMedicineScreenProps> = ({ route, n
               Keep the label familiar so the medicine stays easy to spot at a glance.
             </Text>
 
-            <Text style={{ color: '#024039', fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 }}>
-              Required field
+            <Text style={{ color: '#141414', fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 }}>
+              <Text style={{ color: '#C73B2A' }}>* </Text>Name
             </Text>
             <TextInput
               value={name}

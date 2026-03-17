@@ -179,8 +179,8 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
               Use a clear name so it stays instantly recognizable on your home list.
             </Text>
 
-            <Text style={{ color: '#024039', fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 }}>
-              Required field
+            <Text style={{ color: '#141414', fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 }}>
+              <Text style={{ color: '#C73B2A' }}>* </Text>Name
             </Text>
             <TextInput
               value={name}

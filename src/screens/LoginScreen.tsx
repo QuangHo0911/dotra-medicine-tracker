@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Alert, Pressable, Text, TextInput, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { ChevronLeft } from 'lucide-react-native';
 import { RootStackParamList } from '../types';
 import { useAuth } from '../context/AuthContext';
 
@@ -21,11 +22,19 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#F1EEE7', padding: 24, gap: 18 }}>
-      <Text style={{ color: '#141414', fontSize: 32, fontWeight: '700', marginTop: 64 }}>Welcome back</Text>
+      <Pressable onPress={() => navigation.goBack()} style={{ alignSelf: 'flex-start', backgroundColor: 'rgba(0,0,0,0.06)', borderRadius: 999, padding: 10, marginTop: 48 }}>
+        <ChevronLeft size={18} color="#141414" />
+      </Pressable>
+      <Text style={{ color: '#141414', fontSize: 32, fontWeight: '700' }}>Welcome back</Text>
       <Text style={{ color: '#6B6B6B', fontSize: 16 }}>Pick up where you left off.</Text>
-      {[{ label: 'Email', value: email, setter: setEmail, secure: false }, { label: 'Password', value: password, setter: setPassword, secure: true }].map((field) => (
+      {[
+        { label: 'Email', value: email, setter: setEmail, secure: false },
+        { label: 'Password', value: password, setter: setPassword, secure: true },
+      ].map((field) => (
         <View key={field.label} style={{ backgroundColor: '#FFF', borderRadius: 24, paddingHorizontal: 18, paddingVertical: 14 }}>
-          <Text style={{ color: '#6B6B6B', fontSize: 12, marginBottom: 6 }}>{field.label}</Text>
+          <Text style={{ color: '#6B6B6B', fontSize: 12, marginBottom: 6 }}>
+            <Text style={{ color: '#C73B2A' }}>* </Text>{field.label}
+          </Text>
           <TextInput value={field.value} onChangeText={field.setter} secureTextEntry={field.secure} autoCapitalize="none" style={{ fontSize: 18, fontWeight: '600', color: '#141414' }} />
         </View>
       ))}
