@@ -30,7 +30,8 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
   const [remindersEnabled, setRemindersEnabled] = useState(false);
   const [reminderTimes, setReminderTimes] = useState<string[]>(['09:00']);
   const [isSaving, setIsSaving] = useState(false);
-  const [errors, setErrors] = useState<{ name?: string }>({});
+  const [description, setDescription] = useState('');
+  const [errors, setErrors] = useState<{ name?: string; description?: string }>({});
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [editingTimeIndex, setEditingTimeIndex] = useState<number | null>(null);
 
@@ -63,16 +64,39 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
     }
   }, [editingTimeIndex, handleReminderTimeChange]);
 
+  const countWords = useCallback((text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return 0;
+    return trimmed.split(/\s+/).length;
+  }, []);
+
+  const handleDescriptionChange = useCallback((text: string) => {
+    setDescription(text);
+    const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
+    if (wordCount > 200) {
+      setErrors((prev) => ({ ...prev, description: 'Maximum words is 200' }));
+    } else {
+      setErrors((prev) => {
+        const { description: _, ...rest } = prev;
+        return rest;
+      });
+    }
+  }, []);
+
   const validate = useCallback(() => {
-    const nextErrors: { name?: string } = {};
+    const nextErrors: { name?: string; description?: string } = {};
 
     if (!name.trim()) {
       nextErrors.name = 'Please enter a medicine name';
     }
 
+    if (countWords(description) > 200) {
+      nextErrors.description = 'Maximum words is 200';
+    }
+
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
-  }, [name]);
+  }, [name, description, countWords]);
 
   const handleSave = useCallback(async () => {
     if (!validate()) {
@@ -110,7 +134,7 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
     });
   }, []);
 
-  const isFormValid = useMemo(() => name.trim().length > 0 && timesPerDay >= 1 && durationDays >= 1, [durationDays, name, timesPerDay]);
+  const isFormValid = useMemo(() => name.trim().length > 0 && timesPerDay >= 1 && durationDays >= 1 && !errors.description, [durationDays, name, timesPerDay, errors.description]);
   const summaryChips = useMemo(
     () => [
       `${timesPerDay}× daily`,
@@ -186,11 +210,15 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
               value={name}
               onChangeText={(text) => {
                 setName(text);
-                if (errors.name) setErrors({});
+                if (errors.name) {
+                  setErrors((prev) => {
+                    const { name: _, ...rest } = prev;
+                    return rest;
+                  });
+                }
               }}
               placeholder="Vitamin D, Ibuprofen, Amoxicillin"
               placeholderTextColor="#8E8A80"
-              maxLength={200}
               autoFocus
               style={{
                 borderWidth: 1.5,
@@ -203,12 +231,36 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
                 color: '#141414',
               }}
             />
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
-              <Text style={{ color: errors.name ? '#C73B2A' : '#6B6B6B', fontSize: 13 }}>
-                {errors.name || 'Example: “Vitamin D” keeps the card clean and scannable.'}
-              </Text>
-              <Text style={{ color: '#8E8A80', fontSize: 12, fontWeight: '700' }}>{name.length}/200</Text>
-            </View>
+            <Text style={{ color: errors.name ? '#C73B2A' : '#6B6B6B', fontSize: 13, marginTop: 10 }}>
+              {errors.name || 'Example: "Vitamin D" keeps the card clean and scannable.'}
+            </Text>
+
+            <Text style={{ color: '#141414', fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8, marginTop: 18 }}>
+              Description
+            </Text>
+            <TextInput
+              value={description}
+              onChangeText={handleDescriptionChange}
+              placeholder="Brief notes about this medicine"
+              placeholderTextColor="#8E8A80"
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+              style={{
+                borderWidth: 1.5,
+                borderColor: errors.description ? '#C73B2A' : '#DDD5C7',
+                backgroundColor: errors.description ? '#FFF5F5' : '#FFF',
+                borderRadius: 20,
+                paddingHorizontal: 16,
+                paddingVertical: 16,
+                fontSize: 16,
+                color: '#141414',
+                minHeight: 80,
+              }}
+            />
+            {errors.description && (
+              <Text style={{ color: '#C73B2A', fontSize: 13, marginTop: 6 }}>{errors.description}</Text>
+            )}
           </View>
 
           <View style={{ backgroundColor: '#FFF', borderRadius: 28, padding: 20 }}>

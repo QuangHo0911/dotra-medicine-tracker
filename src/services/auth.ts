@@ -1,6 +1,7 @@
 import * as WebBrowser from 'expo-web-browser';
 import {
   createUserWithEmailAndPassword,
+  fetchSignInMethodsForEmail,
   GoogleAuthProvider,
   onAuthStateChanged,
   sendPasswordResetEmail,
@@ -135,6 +136,16 @@ export const updateStoredProfile = async (
   }
 
   return nextProfile;
+};
+
+export const checkEmailExists = async (email: string): Promise<boolean> => {
+  if (!auth) return false;
+  try {
+    const methods = await fetchSignInMethodsForEmail(auth, email.trim());
+    return methods.length > 0;
+  } catch {
+    return false;
+  }
 };
 
 export const signInWithGoogleIdToken = async (idToken: string): Promise<UserProfile> => {
