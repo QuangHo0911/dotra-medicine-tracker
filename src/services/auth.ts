@@ -1,7 +1,6 @@
 import * as WebBrowser from 'expo-web-browser';
 import {
   createUserWithEmailAndPassword,
-  fetchSignInMethodsForEmail,
   GoogleAuthProvider,
   onAuthStateChanged,
   sendPasswordResetEmail,
@@ -139,10 +138,23 @@ export const updateStoredProfile = async (
 };
 
 export const checkEmailExists = async (email: string): Promise<boolean> => {
-  if (!auth) return false;
+  const apiKey = auth?.app.options.apiKey;
+  if (!apiKey) return false;
   try {
-    const methods = await fetchSignInMethodsForEmail(auth, email.trim());
-    return methods.length > 0;
+    const res = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:createAuthUri?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          identifier: email.trim(),
+          continueUri: 'http://localhost',
+        }),
+      },
+    );
+    if (!res.ok) return false;
+    const data = await res.json();
+    return data.registered === true;
   } catch {
     return false;
   }

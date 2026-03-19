@@ -10,5 +10,8 @@ export type { CardProps, CardVariant, BadgeProps } from './Card';
 export { Text, Heading, Subheading, BodyText, Caption, Label } from './Text';
 export type { TextProps, TextVariant, TextColor } from './Text';
 
+export { FormField } from './FormField';
+export type { FormFieldProps } from './FormField';
+
 export { Modal, ModalHeader, ModalContent, ModalFooter, ActionMenu } from './Modal';
 export type { ModalProps, ActionMenuProps } from './Modal';

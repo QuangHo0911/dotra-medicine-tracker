@@ -7,7 +7,6 @@ import {
   Pressable,
   ScrollView,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
@@ -16,10 +15,10 @@ import Constants from 'expo-constants';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { AuthRequest, CodeChallengeMethod, ResponseType } from 'expo-auth-session';
-import { Eye, EyeOff } from 'lucide-react-native';
 import { RootStackParamList } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { runtimeConfig } from '../config/runtime';
+import { FormField } from '../components/ui/FormField';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -65,7 +64,6 @@ export const AuthWelcomeScreen: React.FC<Props> = ({ navigation }) => {
   const [busy, setBusy] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [signInError, setSignInError] = useState('');
   const [isSigningIn, setIsSigningIn] = useState(false);
 
@@ -236,100 +234,30 @@ export const AuthWelcomeScreen: React.FC<Props> = ({ navigation }) => {
 
           <View style={{ paddingHorizontal: 24 }}>
 
-          {/* ── Email field ── */}
           <View style={{ marginBottom: 14 }}>
-            <Text
-              style={{
-                color: '#141414',
-                fontSize: 13,
-                fontWeight: '600',
-                marginBottom: 8,
-                marginLeft: 4,
-              }}
-            >
-              <Text style={{ color: '#C73B2A' }}>* </Text>Email
-            </Text>
-            <View
-              style={{
-                backgroundColor: '#FFF',
-                borderRadius: 16,
-                borderWidth: 1.5,
-                borderColor: '#E5E0D8',
-                paddingHorizontal: 16,
-                paddingVertical: 14,
-              }}
-            >
-              <TextInput
-                value={email}
-                onChangeText={(t) => {
-                  setEmail(t);
-                  setSignInError('');
-                }}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                placeholder="you@example.com"
-                placeholderTextColor="#A8A29E"
-                style={{ fontSize: 16, color: '#141414' }}
-              />
-            </View>
+            <FormField
+              label="Email"
+              required
+              value={email}
+              onChangeText={(t) => { setEmail(t); setSignInError(''); }}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              placeholder="you@example.com"
+            />
           </View>
 
-          {/* ── Password field ── */}
           <View style={{ marginBottom: 6 }}>
-            <Text
-              style={{
-                color: '#141414',
-                fontSize: 13,
-                fontWeight: '600',
-                marginBottom: 8,
-                marginLeft: 4,
-              }}
-            >
-              <Text style={{ color: '#C73B2A' }}>* </Text>Password
-            </Text>
-            <View
-              style={{
-                backgroundColor: '#FFF',
-                borderRadius: 16,
-                borderWidth: 1.5,
-                borderColor: '#E5E0D8',
-                paddingHorizontal: 16,
-                paddingVertical: 14,
-                flexDirection: 'row',
-                alignItems: 'center',
-              }}
-            >
-              <TextInput
-                value={password}
-                onChangeText={(t) => {
-                  setPassword(t);
-                  setSignInError('');
-                }}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                placeholder="Enter your password"
-                placeholderTextColor="#A8A29E"
-                style={{ fontSize: 16, color: '#141414', flex: 1 }}
-              />
-              <Pressable
-                onPress={() => setShowPassword((v) => !v)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                {showPassword ? (
-                  <EyeOff size={20} color="#6B6B6B" />
-                ) : (
-                  <Eye size={20} color="#6B6B6B" />
-                )}
-              </Pressable>
-            </View>
+            <FormField
+              label="Password"
+              required
+              value={password}
+              onChangeText={(t) => { setPassword(t); setSignInError(''); }}
+              secureTextEntry
+              autoCapitalize="none"
+              placeholder="Enter your password"
+              error={signInError || undefined}
+            />
           </View>
-
-          {/* ── Error message ── */}
-          {signInError ? (
-            <Text style={{ color: '#C73B2A', fontSize: 13, marginTop: 6, marginLeft: 4 }}>
-              {signInError}
-            </Text>
-          ) : null}
 
           {/* ── Forgot password ── */}
           <Pressable

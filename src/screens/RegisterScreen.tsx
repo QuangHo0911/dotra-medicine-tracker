@@ -1,10 +1,20 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ChevronLeft } from 'lucide-react-native';
 import { RootStackParamList } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { checkEmailExists } from '../services/auth';
+import { FormField } from '../components/ui/FormField';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Register'>;
 
@@ -128,79 +138,93 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
-  const fields = [
-    { key: 'fullName', label: 'Full name', value: fullName, setter: setFullName, secure: false, onBlur: undefined as (() => void) | undefined },
-    { key: 'email', label: 'Email', value: email, setter: handleEmailChange, secure: false, onBlur: handleEmailBlur },
-    { key: 'password', label: 'Password', value: password, setter: handlePasswordChange, secure: true, onBlur: undefined as (() => void) | undefined },
-    { key: 'confirmPassword', label: 'Confirm password', value: confirmPassword, setter: handleConfirmPasswordChange, secure: true, onBlur: undefined as (() => void) | undefined },
-  ];
-
   return (
-    <View style={{ flex: 1, backgroundColor: '#F1EEE7', padding: 24, gap: 18 }}>
-      <Pressable onPress={() => navigation.goBack()} style={{ alignSelf: 'flex-start', backgroundColor: 'rgba(0,0,0,0.06)', borderRadius: 999, padding: 10, marginTop: 48 }}>
-        <ChevronLeft size={18} color="#141414" />
-      </Pressable>
-      <Text style={{ color: '#141414', fontSize: 32, fontWeight: '700' }}>Create your account</Text>
-      <Text style={{ color: '#6B6B6B', fontSize: 16 }}>We'll keep this fast: just the essentials.</Text>
-      {fields.map((field) => {
-        const error = errors[field.key];
-        const hasError = !!error;
-        return (
-          <View key={field.key}>
-            <View
-              style={{
-                backgroundColor: hasError ? '#FFF5F5' : '#FFF',
-                borderRadius: 24,
-                paddingHorizontal: 18,
-                paddingVertical: 14,
-                borderWidth: 1.5,
-                borderColor: hasError ? '#C73B2A' : 'transparent',
-              }}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
-                <Text style={{ color: hasError ? '#C73B2A' : '#6B6B6B', fontSize: 12 }}>
-                  <Text style={{ color: '#C73B2A' }}>* </Text>{field.label}
-                </Text>
-                {field.key === 'email' && isCheckingEmail && (
-                  <ActivityIndicator size="small" color="#6B6B6B" style={{ marginLeft: 8 }} />
-                )}
-              </View>
-              <TextInput
-                value={field.value}
-                onChangeText={field.setter}
-                onBlur={field.onBlur}
-                secureTextEntry={field.secure}
-                autoCapitalize={field.key === 'fullName' ? 'words' : 'none'}
-                keyboardType={field.key === 'email' ? 'email-address' : 'default'}
-                style={{ fontSize: 18, fontWeight: '600', color: '#141414' }}
-              />
-            </View>
-            {hasError && (
-              <Text style={{ color: '#C73B2A', fontSize: 12, fontWeight: '600', marginTop: 6, marginLeft: 18 }}>{error}</Text>
-            )}
-          </View>
-        );
-      })}
-      {errors.submit && (
-        <Text style={{ color: '#C73B2A', fontSize: 13, textAlign: 'center' }}>{errors.submit}</Text>
-      )}
-      <Pressable
-        onPress={handleSubmit}
-        disabled={!isFormValid || isSubmitting}
-        style={{
-          backgroundColor: isFormValid && !isSubmitting ? '#024039' : '#9CA3A0',
-          borderRadius: 999,
-          paddingVertical: 18,
-          alignItems: 'center',
-          opacity: isFormValid && !isSubmitting ? 1 : 0.7,
-        }}
+    <View style={{ flex: 1, backgroundColor: '#F1EEE7' }}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {isSubmitting ? (
-          <ActivityIndicator color="#FFF" />
-        ) : (
-          <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 16 }}>Create account</Text>
-        )}
-      </Pressable>
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, padding: 24, gap: 18 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <Pressable
+            onPress={() => { Keyboard.dismiss(); navigation.goBack(); }}
+            style={{ alignSelf: 'flex-start', backgroundColor: 'rgba(0,0,0,0.06)', borderRadius: 999, padding: 10, marginTop: 48 }}
+          >
+            <ChevronLeft size={18} color="#141414" />
+          </Pressable>
+          <Text style={{ color: '#141414', fontSize: 32, fontWeight: '700' }}>Create your account</Text>
+          <Text style={{ color: '#6B6B6B', fontSize: 16 }}>We'll keep this fast: just the essentials.</Text>
+
+          <FormField
+            label="Full name"
+            required
+            value={fullName}
+            onChangeText={setFullName}
+            autoCapitalize="words"
+            placeholder="Your full name"
+            error={errors.fullName}
+          />
+
+          <FormField
+            label="Email"
+            required
+            value={email}
+            onChangeText={handleEmailChange}
+            onBlur={handleEmailBlur}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            placeholder="you@example.com"
+            error={errors.email}
+            rightElement={isCheckingEmail ? <ActivityIndicator size="small" color="#6B6B6B" /> : undefined}
+          />
+
+          <FormField
+            label="Password"
+            required
+            value={password}
+            onChangeText={handlePasswordChange}
+            secureTextEntry
+            autoCapitalize="none"
+            placeholder="Create a password"
+            error={errors.password}
+          />
+
+          <FormField
+            label="Confirm password"
+            required
+            value={confirmPassword}
+            onChangeText={handleConfirmPasswordChange}
+            secureTextEntry
+            autoCapitalize="none"
+            placeholder="Repeat your password"
+            error={errors.confirmPassword}
+          />
+
+          {errors.submit && (
+            <Text style={{ color: '#C73B2A', fontSize: 13, textAlign: 'center' }}>{errors.submit}</Text>
+          )}
+          <Pressable
+            onPress={handleSubmit}
+            disabled={!isFormValid || isSubmitting}
+            style={{
+              backgroundColor: isFormValid && !isSubmitting ? '#024039' : '#9CA3A0',
+              borderRadius: 16,
+              paddingVertical: 18,
+              alignItems: 'center',
+              opacity: isFormValid && !isSubmitting ? 1 : 0.7,
+            }}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator color="#FFF" />
+            ) : (
+              <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 16 }}>Create account</Text>
+            )}
+          </Pressable>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 };

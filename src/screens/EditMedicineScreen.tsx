@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
-  TextInput,
   TouchableOpacity,
   ScrollView,
   Switch,
@@ -14,6 +13,7 @@ import { TimePickerModal } from '../components/TimePickerModal';
 import { useMedicine } from '../context/MedicineContext';
 import { MedicineFormData, RootStackParamList } from '../types';
 import { Text } from '../components/ui/Text';
+import { FormField } from '../components/ui/FormField';
 import { BottomActionBar } from '../components/ui/BottomActionBar';
 
 type EditMedicineScreenProps = NativeStackScreenProps<RootStackParamList, 'EditMedicine'>;
@@ -255,10 +255,9 @@ export const EditMedicineScreen: React.FC<EditMedicineScreenProps> = ({ route, n
               Keep the label familiar so the medicine stays easy to spot at a glance.
             </Text>
 
-            <Text style={{ color: '#141414', fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 }}>
-              <Text style={{ color: '#C73B2A' }}>* </Text>Name
-            </Text>
-            <TextInput
+            <FormField
+              label="Name"
+              required
               value={name}
               onChangeText={(text) => {
                 setName(text);
@@ -270,48 +269,21 @@ export const EditMedicineScreen: React.FC<EditMedicineScreenProps> = ({ route, n
                 }
               }}
               placeholder="Vitamin D, Ibuprofen, Amoxicillin"
-              placeholderTextColor="#8E8A80"
-              style={{
-                borderWidth: 1.5,
-                borderColor: errors.name ? '#C73B2A' : '#DDD5C7',
-                backgroundColor: '#FFF',
-                borderRadius: 20,
-                paddingHorizontal: 16,
-                paddingVertical: 16,
-                fontSize: 16,
-                color: '#141414',
-              }}
+              error={errors.name}
+              helperText={errors.name ? undefined : 'Short, clear names make daily check-offs faster.'}
             />
-            <Text style={{ color: errors.name ? '#C73B2A' : '#6B6B6B', fontSize: 13, marginTop: 10 }}>
-              {errors.name || 'Short, clear names make daily check-offs faster.'}
-            </Text>
 
-            <Text style={{ color: '#141414', fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8, marginTop: 18 }}>
-              Description
-            </Text>
-            <TextInput
-              value={description}
-              onChangeText={handleDescriptionChange}
-              placeholder="Brief notes about this medicine"
-              placeholderTextColor="#8E8A80"
-              multiline
-              numberOfLines={3}
-              textAlignVertical="top"
-              style={{
-                borderWidth: 1.5,
-                borderColor: errors.description ? '#C73B2A' : '#DDD5C7',
-                backgroundColor: errors.description ? '#FFF5F5' : '#FFF',
-                borderRadius: 20,
-                paddingHorizontal: 16,
-                paddingVertical: 16,
-                fontSize: 16,
-                color: '#141414',
-                minHeight: 80,
-              }}
-            />
-            {errors.description && (
-              <Text style={{ color: '#C73B2A', fontSize: 13, marginTop: 6 }}>{errors.description}</Text>
-            )}
+            <View style={{ marginTop: 18 }}>
+              <FormField
+                label="Description"
+                value={description}
+                onChangeText={handleDescriptionChange}
+                placeholder="Brief notes about this medicine"
+                multiline
+                numberOfLines={3}
+                error={errors.description}
+              />
+            </View>
           </View>
 
           <View style={{ backgroundColor: '#FFF', borderRadius: 28, padding: 20 }}>

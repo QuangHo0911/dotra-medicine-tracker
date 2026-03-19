@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
-  TextInput,
   TouchableOpacity,
   ScrollView,
   Switch,
@@ -14,6 +13,7 @@ import { TimePickerModal } from '../components/TimePickerModal';
 import { useMedicine } from '../context/MedicineContext';
 import { MedicineFormData, RootStackParamList } from '../types';
 import { Text } from '../components/ui/Text';
+import { FormField } from '../components/ui/FormField';
 import { BottomActionBar } from '../components/ui/BottomActionBar';
 
 type CreateMedicineScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -203,10 +203,9 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
               Use a clear name so it stays instantly recognizable on your home list.
             </Text>
 
-            <Text style={{ color: '#141414', fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 }}>
-              <Text style={{ color: '#C73B2A' }}>* </Text>Name
-            </Text>
-            <TextInput
+            <FormField
+              label="Name"
+              required
               value={name}
               onChangeText={(text) => {
                 setName(text);
@@ -218,49 +217,22 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
                 }
               }}
               placeholder="Vitamin D, Ibuprofen, Amoxicillin"
-              placeholderTextColor="#8E8A80"
               autoFocus
-              style={{
-                borderWidth: 1.5,
-                borderColor: errors.name ? '#C73B2A' : '#DDD5C7',
-                backgroundColor: '#FFF',
-                borderRadius: 20,
-                paddingHorizontal: 16,
-                paddingVertical: 16,
-                fontSize: 16,
-                color: '#141414',
-              }}
+              error={errors.name}
+              helperText={errors.name ? undefined : 'Example: "Vitamin D" keeps the card clean and scannable.'}
             />
-            <Text style={{ color: errors.name ? '#C73B2A' : '#6B6B6B', fontSize: 13, marginTop: 10 }}>
-              {errors.name || 'Example: "Vitamin D" keeps the card clean and scannable.'}
-            </Text>
 
-            <Text style={{ color: '#141414', fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8, marginTop: 18 }}>
-              Description
-            </Text>
-            <TextInput
-              value={description}
-              onChangeText={handleDescriptionChange}
-              placeholder="Brief notes about this medicine"
-              placeholderTextColor="#8E8A80"
-              multiline
-              numberOfLines={3}
-              textAlignVertical="top"
-              style={{
-                borderWidth: 1.5,
-                borderColor: errors.description ? '#C73B2A' : '#DDD5C7',
-                backgroundColor: errors.description ? '#FFF5F5' : '#FFF',
-                borderRadius: 20,
-                paddingHorizontal: 16,
-                paddingVertical: 16,
-                fontSize: 16,
-                color: '#141414',
-                minHeight: 80,
-              }}
-            />
-            {errors.description && (
-              <Text style={{ color: '#C73B2A', fontSize: 13, marginTop: 6 }}>{errors.description}</Text>
-            )}
+            <View style={{ marginTop: 18 }}>
+              <FormField
+                label="Description"
+                value={description}
+                onChangeText={handleDescriptionChange}
+                placeholder="Brief notes about this medicine"
+                multiline
+                numberOfLines={3}
+                error={errors.description}
+              />
+            </View>
           </View>
 
           <View style={{ backgroundColor: '#FFF', borderRadius: 28, padding: 20 }}>
