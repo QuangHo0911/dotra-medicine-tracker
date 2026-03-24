@@ -384,7 +384,7 @@ export const EditMedicineScreen: React.FC<EditMedicineScreenProps> = ({ route, n
                   <TouchableOpacity
                     onPress={handleAddReminderTime}
                     activeOpacity={0.85}
-                    style={{ flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', marginTop: 4, backgroundColor: '#0A655A', borderRadius: 999, paddingHorizontal: 14, paddingVertical: 11 }}
+                    style={{ flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', marginTop: 4, backgroundColor: '#024039', borderRadius: 999, paddingHorizontal: 14, paddingVertical: 11 }}
                   >
                     <Plus size={16} color="#FFF" />
                     <Text style={{ color: '#FFF', fontSize: 14, fontWeight: '700', marginLeft: 8 }}>Add reminder time</Text>
@@ -424,7 +424,7 @@ export const EditMedicineScreen: React.FC<EditMedicineScreenProps> = ({ route, n
       <BottomActionBar
         onCancel={() => navigation.goBack()}
         onPrimaryAction={handleSave}
-        primaryActionLabel="Update Medicine"
+        primaryActionLabel="Save"
         isLoading={isSaving}
         isDisabled={!isFormValid}
       />

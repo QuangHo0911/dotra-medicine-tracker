@@ -50,9 +50,6 @@ export type RootStackParamList = {
   EditMedicine: { medicineId: string };
   Completion: { summary: DailyCompletionSummary };
   BackupSync: undefined;
-  BackupSignIn: undefined;
-  BackupRegister: undefined;
-  ForgotPassword: undefined;
 };
 
 export type DataConflictChoice = 'local' | 'cloud';

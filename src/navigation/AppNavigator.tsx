@@ -2,36 +2,33 @@ import React from 'react';
 import { Text, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Pill, Settings } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { MainTabParamList, RootStackParamList } from '../types';
 import { CompletionScreen } from '../screens/CompletionScreen';
 import { CreateMedicineScreen } from '../screens/CreateMedicineScreen';
 import { EditMedicineScreen } from '../screens/EditMedicineScreen';
-import { ForgotPasswordScreen } from '../screens/ForgotPasswordScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { BackupSyncScreen } from '../screens/BackupSyncScreen';
-import { BackupSignInScreen } from '../screens/BackupSignInScreen';
-import { BackupRegisterScreen } from '../screens/BackupRegisterScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
-const MainTabs = () => (
+const MainTabs = () => {
+  const insets = useSafeAreaInsets();
+  return (
   <Tab.Navigator
     screenOptions={{
       headerShown: false,
       tabBarStyle: {
-        position: 'absolute',
-        left: 20,
-        right: 20,
-        bottom: 24,
-        height: 72,
+        height: 62 + insets.bottom,
         paddingTop: 10,
-        paddingBottom: 10,
-        borderRadius: 999,
-        backgroundColor: 'rgba(255,255,255,0.95)',
+        paddingBottom: insets.bottom,
+        backgroundColor: '#FFFFFF',
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(0,0,0,0.06)',
       },
       tabBarActiveTintColor: '#024039',
       tabBarInactiveTintColor: '#6B6B6B',
@@ -54,7 +51,8 @@ const MainTabs = () => (
       }}
     />
   </Tab.Navigator>
-);
+  );
+};
 
 const LoadingScreen = () => (
   <View style={{ flex: 1, backgroundColor: '#F1EEE7', alignItems: 'center', justifyContent: 'center' }}>
@@ -76,9 +74,6 @@ export const AppNavigator: React.FC = () => {
       <Stack.Screen name="EditMedicine" component={EditMedicineScreen} />
       <Stack.Screen name="Completion" component={CompletionScreen} />
       <Stack.Screen name="BackupSync" component={BackupSyncScreen} />
-      <Stack.Screen name="BackupSignIn" component={BackupSignInScreen} />
-      <Stack.Screen name="BackupRegister" component={BackupRegisterScreen} />
-      <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
     </Stack.Navigator>
   );
 };

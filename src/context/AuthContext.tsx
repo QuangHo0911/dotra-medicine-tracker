@@ -4,10 +4,7 @@ import {
   createProfileFromUser,
   getStoredProfile,
   isAuthConfigured,
-  loginWithEmail,
   logout,
-  registerWithEmail,
-  sendResetEmail,
   signInWithGoogleIdToken,
   subscribeToAuthState,
   updateStoredProfile,
@@ -35,10 +32,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   isGuest: boolean;
-  register: (fullName: string, email: string, password: string) => Promise<void>;
-  login: (email: string, password: string) => Promise<void>;
   loginWithGoogleIdToken: (idToken: string) => Promise<void>;
-  forgotPassword: (email: string) => Promise<void>;
   logoutUser: () => Promise<void>;
   disconnectBackup: () => Promise<void>;
   refreshProfile: (user?: User | null) => Promise<void>;
@@ -100,24 +94,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isLoading,
       isAuthenticated: !!user,
       isGuest: !user,
-      register: async (fullName, email, password) => {
-        setIsLoading(true);
-        try {
-          const nextProfile = await registerWithEmail(fullName, email, password);
-          setProfile(nextProfile);
-        } finally {
-          setIsLoading(false);
-        }
-      },
-      login: async (email, password) => {
-        setIsLoading(true);
-        try {
-          const nextProfile = await loginWithEmail(email, password);
-          setProfile(nextProfile);
-        } finally {
-          setIsLoading(false);
-        }
-      },
       loginWithGoogleIdToken: async (idToken: string) => {
         setIsLoading(true);
         try {
@@ -126,9 +102,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } finally {
           setIsLoading(false);
         }
-      },
-      forgotPassword: async (email) => {
-        await sendResetEmail(email);
       },
       logoutUser: async () => {
         setIsLoading(true);

@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { Dimensions, FlatList, Modal, Pressable, RefreshControl, Text, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronDown, Plus, Sparkles } from 'lucide-react-native';
 import { Flame } from 'lucide-react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -34,6 +35,7 @@ const DAY_SIZE = Math.floor((SCREEN_WIDTH - 48 - 12) / 7);
 export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const { medicines, refreshMedicines, getDailySummary } = useMedicine();
   const [refreshing, setRefreshing] = useState(false);
+  const insets = useSafeAreaInsets();
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [viewedMonth, setViewedMonth] = useState(new Date());
   const streakDates = useMemo(() => getStreakDates(medicines), [medicines]);
@@ -71,10 +73,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#F1EEE7' }}>
+    <SafeAreaView style={{ backgroundColor: '#024039' }} edges={['top']} />
       <View
         style={{
           backgroundColor: '#024039',
-          paddingTop: 56,
           paddingHorizontal: 24,
           paddingBottom: 22,
           borderBottomLeftRadius: 32,
@@ -98,7 +100,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#024039" />}
-        contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: 160, flexGrow: medicines.length === 0 ? 1 : undefined }}
+        contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: 100, flexGrow: medicines.length === 0 ? 1 : undefined }}
         ListHeaderComponent={
           medicines.length ? (
             <View style={{ backgroundColor: '#FFF', borderRadius: 24, padding: 20 }}>
@@ -192,12 +194,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             >
               Add your medications to receive reminders and stay on track with your health journey.
             </Text>
-            <Pressable
-              onPress={() => navigation.navigate('CreateMedicine')}
-              style={{ backgroundColor: '#024039', borderRadius: 999, paddingVertical: 18, paddingHorizontal: 28 }}
-            >
-              <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700' }}>Add Your First Medicine</Text>
-            </Pressable>
           </View>
         }
       />
@@ -207,7 +203,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         style={{
           position: 'absolute',
           right: 24,
-          bottom: 112,
+          bottom: 24,
           width: 64,
           height: 64,
           borderRadius: 32,

@@ -7,7 +7,7 @@ import {
   Alert,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ChevronLeft, Clock, Pill, Plus, XCircle } from 'lucide-react-native';
+import { ChevronLeft, Clock, Plus, XCircle } from 'lucide-react-native';
 import { Stepper } from '../components/Stepper';
 import { TimePickerModal } from '../components/TimePickerModal';
 import { useMedicine } from '../context/MedicineContext';
@@ -135,14 +135,6 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
   }, []);
 
   const isFormValid = useMemo(() => name.trim().length > 0 && timesPerDay >= 1 && durationDays >= 1 && !errors.description, [durationDays, name, timesPerDay, errors.description]);
-  const summaryChips = useMemo(
-    () => [
-      `${timesPerDay}× daily`,
-      `${durationDays} day${durationDays === 1 ? '' : 's'}`,
-      remindersEnabled ? `${reminderTimes.length} reminder${reminderTimes.length === 1 ? '' : 's'}` : 'Reminders off',
-    ],
-    [durationDays, reminderTimes.length, remindersEnabled, timesPerDay]
-  );
 
   return (
     <View style={{ flex: 1, backgroundColor: '#F2EEE6' }}>
@@ -155,44 +147,19 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
             paddingBottom: 28,
             borderBottomLeftRadius: 34,
             borderBottomRightRadius: 34,
-            overflow: 'hidden',
           }}
         >
-          <View style={{ position: 'absolute', top: -24, right: -12, width: 116, height: 116, borderRadius: 58, backgroundColor: 'rgba(255,255,255,0.08)' }} />
-          <View style={{ position: 'absolute', bottom: -54, left: -18, width: 148, height: 148, borderRadius: 74, borderWidth: 20, borderColor: 'rgba(228,221,203,0.12)' }} />
-
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            activeOpacity={0.85}
-            style={{ alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 999, padding: 10, marginBottom: 18 }}
-          >
-            <ChevronLeft size={18} color="#FFF" />
-          </TouchableOpacity>
-
-          <View style={{ flexDirection: 'row', gap: 16, alignItems: 'flex-start' }}>
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: 'rgba(255,255,255,0.72)', fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.1, marginBottom: 8 }}>
-                Create medicine
-              </Text>
-              <Text style={{ color: '#FFF', fontSize: 31, fontWeight: '700', lineHeight: 38, marginBottom: 10 }}>
-                Shape a routine that feels easy.
-              </Text>
-              <Text style={{ color: 'rgba(255,255,255,0.82)', fontSize: 15, lineHeight: 22 }}>
-                Keep only the essentials: name, daily cadence, duration, and reminder times that actually help.
-              </Text>
-
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
-                {summaryChips.map((chip) => (
-                  <View key={chip} style={{ backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 }}>
-                    <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '700' }}>{chip}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-
-            <View style={{ width: 72, height: 72, borderRadius: 24, backgroundColor: '#E4DDCB', alignItems: 'center', justifyContent: 'center', marginTop: 6 }}>
-              <Pill size={30} color="#024039" />
-            </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              activeOpacity={0.85}
+              style={{ backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 999, padding: 10 }}
+            >
+              <ChevronLeft size={18} color="#FFF" />
+            </TouchableOpacity>
+            <Text style={{ color: '#FFF', fontSize: 22, fontWeight: '800', letterSpacing: -0.3 }}>
+              Create Medicine
+            </Text>
           </View>
         </View>
 
@@ -217,7 +184,6 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
                 }
               }}
               placeholder="Vitamin D, Ibuprofen, Amoxicillin"
-              autoFocus
               error={errors.name}
               helperText={errors.name ? undefined : 'Example: "Vitamin D" keeps the card clean and scannable.'}
             />
@@ -255,15 +221,6 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
                 upgradeMessage="Maximum duration is 365 days."
                 showUpgrade
               />
-            </View>
-
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 16 }}>
-              <View style={{ backgroundColor: '#EEF4EE', borderRadius: 18, paddingHorizontal: 12, paddingVertical: 10 }}>
-                <Text style={{ color: '#0A655A', fontSize: 13, fontWeight: '700' }}>{timesPerDay} check-in{timesPerDay === 1 ? '' : 's'} per day</Text>
-              </View>
-              <View style={{ backgroundColor: '#FFF3E4', borderRadius: 18, paddingHorizontal: 12, paddingVertical: 10 }}>
-                <Text style={{ color: '#B15A1B', fontSize: 13, fontWeight: '700' }}>{durationDays} day plan</Text>
-              </View>
             </View>
           </View>
 
@@ -333,7 +290,7 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
                   <TouchableOpacity
                     onPress={handleAddReminderTime}
                     activeOpacity={0.85}
-                    style={{ flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', marginTop: 4, backgroundColor: '#0A655A', borderRadius: 999, paddingHorizontal: 14, paddingVertical: 11 }}
+                    style={{ flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', marginTop: 4, backgroundColor: '#024039', borderRadius: 999, paddingHorizontal: 14, paddingVertical: 11 }}
                   >
                     <Plus size={16} color="#FFF" />
                     <Text style={{ color: '#FFF', fontSize: 14, fontWeight: '700', marginLeft: 8 }}>Add reminder time</Text>
@@ -364,7 +321,7 @@ export const CreateMedicineScreen: React.FC<CreateMedicineScreenProps> = ({ navi
       <BottomActionBar
         onCancel={() => navigation.goBack()}
         onPrimaryAction={handleSave}
-        primaryActionLabel="Save Medicine"
+        primaryActionLabel="Create"
         isLoading={isSaving}
         isDisabled={!isFormValid}
       />

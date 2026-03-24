@@ -1,6 +1,9 @@
 import { getApp, getApps, initializeApp, FirebaseApp } from 'firebase/app';
 import { getFirestore, Firestore } from 'firebase/firestore';
 import { getAuth, Auth } from 'firebase/auth';
+// @ts-expect-error -- firebase/auth lacks a react-native export; @firebase/auth's RN entry does
+import { initializeAuth, getReactNativePersistence } from '@firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 import { runtimeConfig } from './runtime';
 
@@ -24,7 +27,14 @@ const firebaseApp: FirebaseApp | null = isFirebaseConfigured()
   : null;
 
 const firestoreDb: Firestore | null = firebaseApp ? getFirestore(firebaseApp) : null;
-const firebaseAuth: Auth | null = firebaseApp ? getAuth(firebaseApp) : null;
+const getOrInitAuth = (app: FirebaseApp): Auth => {
+  try {
+    return getAuth(app);
+  } catch {
+    return initializeAuth(app, { persistence: getReactNativePersistence(AsyncStorage) });
+  }
+};
+const firebaseAuth: Auth | null = firebaseApp ? getOrInitAuth(firebaseApp) : null;
 const firebaseStorage: FirebaseStorage | null = firebaseApp ? getStorage(firebaseApp) : null;
 
 export const app = firebaseApp;

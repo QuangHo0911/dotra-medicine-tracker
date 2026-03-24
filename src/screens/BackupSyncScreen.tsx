@@ -14,6 +14,7 @@ import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { AuthRequest, ResponseType } from 'expo-auth-session';
 import * as Crypto from 'expo-crypto';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, Cloud, CloudOff, RefreshCw, RotateCcw } from 'lucide-react-native';
 import { Medicine, RootStackParamList } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -218,7 +219,9 @@ export const BackupSyncScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#F1EEE7' }}>
-      <View style={{ backgroundColor: '#024039', paddingTop: 56, paddingHorizontal: 24, paddingBottom: 28, borderBottomLeftRadius: 32, borderBottomRightRadius: 32, overflow: 'hidden' }}>
+    <SafeAreaView style={{ backgroundColor: '#024039' }} edges={['top']} />
+    <View style={{ flex: 1 }}>
+      <View style={{ backgroundColor: '#024039', paddingHorizontal: 24, paddingBottom: 28, borderBottomLeftRadius: 32, borderBottomRightRadius: 32, overflow: 'hidden' }}>
         <View style={{ position: 'absolute', top: -24, right: -12, width: 96, height: 96, borderRadius: 48, backgroundColor: 'rgba(255,255,255,0.08)' }} />
         <View style={{ position: 'absolute', bottom: -30, left: -10, width: 120, height: 120, borderRadius: 60, borderWidth: 18, borderColor: 'rgba(228,221,203,0.14)' }} />
         <Pressable onPress={() => navigation.goBack()} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 20 }}>
@@ -258,20 +261,6 @@ export const BackupSyncScreen: React.FC<Props> = ({ navigation }) => {
               {busy ? <ActivityIndicator size="small" color="#4285F4" /> : <GoogleIcon />}
               <Text style={{ color: '#141414', fontSize: 16, fontWeight: '600' }}>
                 {busy ? 'Connecting…' : 'Back up with Google'}
-              </Text>
-            </Pressable>
-
-            <Pressable
-              onPress={() => navigation.navigate('BackupSignIn')}
-              style={{
-                backgroundColor: '#FFF',
-                borderRadius: 20,
-                padding: 18,
-                alignItems: 'center',
-              }}
-            >
-              <Text style={{ color: '#024039', fontSize: 15, fontWeight: '600' }}>
-                Sign in with email instead
               </Text>
             </Pressable>
 
@@ -350,6 +339,7 @@ export const BackupSyncScreen: React.FC<Props> = ({ navigation }) => {
           </>
         )}
       </ScrollView>
+    </View>
     </View>
   );
 };
