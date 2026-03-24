@@ -241,16 +241,20 @@ export const MedicineProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [medicines, user]);
 
   const refreshMedicines = useCallback(async () => {
-    if (!user) return;
     setIsLoading(true);
     try {
-      const remote = await getMedicinesFromFirebase();
-      const merged = mergeMedicines(medicines, remote);
-      await persistMedicines(merged);
+      if (user) {
+        const remote = await getMedicinesFromFirebase();
+        const merged = mergeMedicines(medicines, remote);
+        await persistMedicines(merged);
+      } else {
+        const local = await loadMedicines(storageScopeKey);
+        setMedicines(local);
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [medicines, mergeMedicines, persistMedicines, user]);
+  }, [medicines, mergeMedicines, persistMedicines, storageScopeKey, user]);
 
   const value = useMemo(
     () => ({

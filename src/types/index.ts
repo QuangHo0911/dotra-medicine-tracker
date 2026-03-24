@@ -20,7 +20,7 @@ export interface MedicineFormData {
   remindersEnabled: boolean;
 }
 
-export type AuthProviderType = 'password' | 'google' | 'apple';
+export type AuthProviderType = 'password' | 'google' | 'apple' | 'guest';
 
 export interface UserProfile {
   uid: string;
@@ -45,15 +45,17 @@ export interface DailyCompletionSummary {
 }
 
 export type RootStackParamList = {
-  AuthWelcome: undefined;
-  Login: undefined;
-  Register: undefined;
-  ForgotPassword: undefined;
   MainTabs: undefined;
   CreateMedicine: undefined;
   EditMedicine: { medicineId: string };
   Completion: { summary: DailyCompletionSummary };
+  BackupSync: undefined;
+  BackupSignIn: undefined;
+  BackupRegister: undefined;
+  ForgotPassword: undefined;
 };
+
+export type DataConflictChoice = 'local' | 'cloud';
 
 export type MainTabParamList = {
   Home: undefined;

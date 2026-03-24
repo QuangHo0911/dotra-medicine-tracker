@@ -16,11 +16,11 @@ import { useAuth } from '../context/AuthContext';
 import { checkEmailExists } from '../services/auth';
 import { FormField } from '../components/ui/FormField';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Register'>;
+type Props = NativeStackScreenProps<RootStackParamList, 'BackupRegister'>;
 
 const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 
-export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
+export const BackupRegisterScreen: React.FC<Props> = ({ navigation }) => {
   const { register } = useAuth();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -59,15 +59,10 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     setEmail(text);
     setFieldError('email', undefined);
     lastCheckedEmail.current = '';
-
     if (emailCheckTimer.current) clearTimeout(emailCheckTimer.current);
-
     const trimmed = text.trim();
     if (!trimmed || !isValidEmail(trimmed)) return;
-
-    emailCheckTimer.current = setTimeout(() => {
-      runEmailCheck(trimmed);
-    }, 600);
+    emailCheckTimer.current = setTimeout(() => { runEmailCheck(trimmed); }, 600);
   }, [setFieldError, runEmailCheck]);
 
   const handleEmailBlur = useCallback(() => {
@@ -123,6 +118,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     setIsSubmitting(true);
     try {
       await register(fullName, email, password);
+      navigation.goBack();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Please try again.';
       if (
@@ -156,52 +152,12 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
             <ChevronLeft size={18} color="#141414" />
           </Pressable>
           <Text style={{ color: '#141414', fontSize: 32, fontWeight: '700' }}>Create your account</Text>
-          <Text style={{ color: '#6B6B6B', fontSize: 16 }}>We'll keep this fast: just the essentials.</Text>
+          <Text style={{ color: '#6B6B6B', fontSize: 16 }}>Sign up to enable cloud backup and sync.</Text>
 
-          <FormField
-            label="Full name"
-            required
-            value={fullName}
-            onChangeText={setFullName}
-            autoCapitalize="words"
-            placeholder="Your full name"
-            error={errors.fullName}
-          />
-
-          <FormField
-            label="Email"
-            required
-            value={email}
-            onChangeText={handleEmailChange}
-            onBlur={handleEmailBlur}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            placeholder="you@example.com"
-            error={errors.email}
-            rightElement={isCheckingEmail ? <ActivityIndicator size="small" color="#6B6B6B" /> : undefined}
-          />
-
-          <FormField
-            label="Password"
-            required
-            value={password}
-            onChangeText={handlePasswordChange}
-            secureTextEntry
-            autoCapitalize="none"
-            placeholder="Create a password"
-            error={errors.password}
-          />
-
-          <FormField
-            label="Confirm password"
-            required
-            value={confirmPassword}
-            onChangeText={handleConfirmPasswordChange}
-            secureTextEntry
-            autoCapitalize="none"
-            placeholder="Repeat your password"
-            error={errors.confirmPassword}
-          />
+          <FormField label="Full name" required value={fullName} onChangeText={setFullName} autoCapitalize="words" placeholder="Your full name" error={errors.fullName} />
+          <FormField label="Email" required value={email} onChangeText={handleEmailChange} onBlur={handleEmailBlur} autoCapitalize="none" keyboardType="email-address" placeholder="you@example.com" error={errors.email} rightElement={isCheckingEmail ? <ActivityIndicator size="small" color="#6B6B6B" /> : undefined} />
+          <FormField label="Password" required value={password} onChangeText={handlePasswordChange} secureTextEntry autoCapitalize="none" placeholder="Create a password" error={errors.password} />
+          <FormField label="Confirm password" required value={confirmPassword} onChangeText={handleConfirmPasswordChange} secureTextEntry autoCapitalize="none" placeholder="Repeat your password" error={errors.confirmPassword} />
 
           {errors.submit && (
             <Text style={{ color: '#C73B2A', fontSize: 13, textAlign: 'center' }}>{errors.submit}</Text>
@@ -220,7 +176,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
             {isSubmitting ? (
               <ActivityIndicator color="#FFF" />
             ) : (
-              <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 16 }}>Create account</Text>
+              <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 16 }}>Create account & connect</Text>
             )}
           </Pressable>
         </ScrollView>

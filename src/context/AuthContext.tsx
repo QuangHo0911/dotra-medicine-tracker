@@ -13,17 +13,34 @@ import {
   updateStoredProfile,
 } from '../services/auth';
 import { UserProfile } from '../types';
+import { saveProfileToStorage } from '../services/storage';
+
+const GUEST_PROFILE: UserProfile = {
+  uid: 'guest',
+  email: null,
+  fullName: 'Dotra User',
+  firstName: 'Dotra',
+  lastName: 'User',
+  avatarUrl: null,
+  localAvatarUri: null,
+  initials: 'DT',
+  provider: 'guest',
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+};
 
 interface AuthContextType {
   user: User | null;
   profile: UserProfile | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  isGuest: boolean;
   register: (fullName: string, email: string, password: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   loginWithGoogleIdToken: (idToken: string) => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
   logoutUser: () => Promise<void>;
+  disconnectBackup: () => Promise<void>;
   refreshProfile: (user?: User | null) => Promise<void>;
   updateProfileDetails: (updates: Partial<UserProfile>, options?: { persistRemote?: boolean }) => Promise<void>;
 }
@@ -37,7 +54,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshProfile = async (authUser?: User | null) => {
     if (!authUser) {
-      setProfile(null);
+      setProfile(GUEST_PROFILE);
       return;
     }
     const hydratedProfile = await createProfileFromUser(authUser);
@@ -51,6 +68,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const storedProfile = await getStoredProfile();
       if (storedProfile) {
         setProfile(storedProfile);
+      } else {
+        setProfile(GUEST_PROFILE);
+        await saveProfileToStorage(GUEST_PROFILE);
       }
 
       if (!isAuthConfigured()) {
@@ -63,7 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (authUser) {
           await refreshProfile(authUser);
         } else {
-          setProfile(null);
+          setProfile((prev) => prev?.provider === 'guest' ? prev : GUEST_PROFILE);
         }
         setIsLoading(false);
       });
@@ -79,6 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       profile,
       isLoading,
       isAuthenticated: !!user,
+      isGuest: !user,
       register: async (fullName, email, password) => {
         setIsLoading(true);
         try {
@@ -114,7 +135,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           await logout();
           setUser(null);
-          setProfile(null);
+          setProfile(GUEST_PROFILE);
+          await saveProfileToStorage(GUEST_PROFILE);
+        } finally {
+          setIsLoading(false);
+        }
+      },
+      disconnectBackup: async () => {
+        setIsLoading(true);
+        try {
+          await logout();
+          setUser(null);
+          setProfile(GUEST_PROFILE);
+          await saveProfileToStorage(GUEST_PROFILE);
         } finally {
           setIsLoading(false);
         }

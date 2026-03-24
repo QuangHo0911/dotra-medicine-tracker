@@ -37,10 +37,5 @@ export const runtimeConfig = {
     'GOOGLE_EXPO_CLIENT_ID',
     'googleWebClientId'
   ),
-  googleClientSecret: readRuntimeValue(
-    'EXPO_PUBLIC_GOOGLE_CLIENT_SECRET',
-    'GOOGLE_CLIENT_SECRET',
-    'googleClientSecret'
-  ),
 };
 

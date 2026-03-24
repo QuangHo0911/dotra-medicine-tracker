@@ -1,14 +1,26 @@
-import React, { useMemo, useState } from 'react';
-import { FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
-import { Plus, Sparkles } from 'lucide-react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { Dimensions, FlatList, Modal, Pressable, RefreshControl, Text, View } from 'react-native';
+import { ChevronDown, Plus, Sparkles } from 'lucide-react-native';
+import { Flame } from 'lucide-react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import {
+  addMonths,
+  eachDayOfInterval,
+  endOfMonth,
+  endOfWeek,
+  format,
+  isSameDay,
+  isSameMonth,
+  parseISO,
+  startOfMonth,
+  startOfWeek,
+  subMonths,
+} from 'date-fns';
 import { Medicine, RootStackParamList } from '../types';
 import { useMedicine } from '../context/MedicineContext';
-import { useAuth } from '../context/AuthContext';
 import { MedicineCard } from '../components/MedicineCard';
 import { CalendarStrip } from '../components/CalendarStrip';
-import { InitialsAvatar } from '../components/InitialsAvatar';
-import { formatHeaderDate, getCurrentStreak, getStreakDates, getToday } from '../utils/dateUtils';
+import { getCurrentStreak, getStreakDates, getToday } from '../utils/dateUtils';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -16,13 +28,18 @@ interface HomeScreenProps {
   navigation: HomeScreenNavigationProp;
 }
 
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const DAY_SIZE = Math.floor((SCREEN_WIDTH - 48 - 12) / 7);
+
 export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const { medicines, refreshMedicines, getDailySummary } = useMedicine();
-  const { profile } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [viewedMonth, setViewedMonth] = useState(new Date());
   const streakDates = useMemo(() => getStreakDates(medicines), [medicines]);
   const summary = useMemo(() => getDailySummary(getToday()), [getDailySummary]);
   const streak = useMemo(() => getCurrentStreak(medicines), [medicines]);
+  const today = new Date();
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -32,6 +49,18 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       setRefreshing(false);
     }
   };
+
+  const calendarDays = useMemo(() => {
+    const monthStart = startOfMonth(viewedMonth);
+    const monthEnd = endOfMonth(viewedMonth);
+    const calStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+    const calEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
+    return eachDayOfInterval({ start: calStart, end: calEnd });
+  }, [viewedMonth]);
+
+  const handleSelectDate = useCallback((_date: Date) => {
+    setCalendarOpen(false);
+  }, []);
 
   const renderItem = ({ item }: { item: Medicine }) => (
     <MedicineCard
@@ -52,15 +81,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           borderBottomRightRadius: 32,
         }}
       >
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 22 }}>
-          <View>
-            <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, marginBottom: 4 }}>
-              {formatHeaderDate(new Date())}
-            </Text>
-            <Text style={{ color: '#FFF', fontSize: 32, fontWeight: '600' }}>My Medicines</Text>
-          </View>
-          <InitialsAvatar initials={profile?.initials || 'DT'} avatarUrl={profile?.avatarUrl} localAvatarUri={profile?.localAvatarUri} />
-        </View>
+        <Pressable
+          onPress={() => { setViewedMonth(new Date()); setCalendarOpen(true); }}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 22 }}
+        >
+          <Text style={{ color: '#FFF', fontSize: 22, fontWeight: '700' }}>
+            {format(today, 'MMMM yyyy')}
+          </Text>
+          <ChevronDown size={20} color="rgba(255,255,255,0.8)" />
+        </Pressable>
         <CalendarStrip streakDates={streakDates} />
       </View>
 
@@ -189,6 +218,80 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       >
         <Plus color="#FFF" size={28} />
       </Pressable>
+
+      {/* Calendar bottom drawer */}
+      <Modal visible={calendarOpen} transparent animationType="slide" onRequestClose={() => setCalendarOpen(false)}>
+        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' }} onPress={() => setCalendarOpen(false)} />
+        <View style={{ backgroundColor: '#FFF', borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingBottom: 40 }}>
+          <View style={{ alignItems: 'center', paddingTop: 12, paddingBottom: 8 }}>
+            <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: '#D9D5CD' }} />
+          </View>
+
+          {/* Month navigation */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 12 }}>
+            <Pressable onPress={() => setViewedMonth((m) => subMonths(m, 1))} style={{ padding: 8 }}>
+              <Text style={{ fontSize: 20, color: '#024039' }}>‹</Text>
+            </Pressable>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: '#141414' }}>
+              {format(viewedMonth, 'MMMM yyyy')}
+            </Text>
+            <Pressable onPress={() => setViewedMonth((m) => addMonths(m, 1))} style={{ padding: 8 }}>
+              <Text style={{ fontSize: 20, color: '#024039' }}>›</Text>
+            </Pressable>
+          </View>
+
+          {/* Weekday headers */}
+          <View style={{ flexDirection: 'row', paddingHorizontal: 24, marginBottom: 4 }}>
+            {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
+              <View key={i} style={{ width: DAY_SIZE, alignItems: 'center' }}>
+                <Text style={{ color: '#6B6B6B', fontSize: 12, fontWeight: '600' }}>{d}</Text>
+              </View>
+            ))}
+          </View>
+
+          {/* Day grid */}
+          <View style={{ paddingHorizontal: 24 }}>
+            {Array.from({ length: Math.ceil(calendarDays.length / 7) }).map((_, weekIdx) => (
+              <View key={weekIdx} style={{ flexDirection: 'row', marginBottom: 2 }}>
+                {calendarDays.slice(weekIdx * 7, weekIdx * 7 + 7).map((day) => {
+                  const isToday = isSameDay(day, today);
+                  const inMonth = isSameMonth(day, viewedMonth);
+                  const hasStreak = streakDates.some((sd) => isSameDay(parseISO(sd), day));
+
+                  return (
+                    <Pressable
+                      key={day.toISOString()}
+                      onPress={() => handleSelectDate(day)}
+                      style={{
+                        width: DAY_SIZE,
+                        height: DAY_SIZE,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRadius: DAY_SIZE / 2,
+                        backgroundColor: isToday ? '#024039' : 'transparent',
+                      }}
+                    >
+                      {hasStreak && inMonth ? (
+                        <Flame size={18} color={isToday ? '#FFB24D' : '#C85C1B'} fill={isToday ? '#FFB24D' : '#C85C1B'} />
+                      ) : (
+                        <Text
+                          style={{
+                            fontSize: 15,
+                            fontWeight: isToday ? '700' : '500',
+                            color: isToday ? '#FFF' : inMonth ? '#141414' : '#C8C5BE',
+                          }}
+                        >
+                          {format(day, 'd')}
+                        </Text>
+                      )}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ))}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };

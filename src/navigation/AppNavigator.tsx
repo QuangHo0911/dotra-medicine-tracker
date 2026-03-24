@@ -5,15 +5,15 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Pill, Settings } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { MainTabParamList, RootStackParamList } from '../types';
-import { AuthWelcomeScreen } from '../screens/AuthWelcomeScreen';
 import { CompletionScreen } from '../screens/CompletionScreen';
 import { CreateMedicineScreen } from '../screens/CreateMedicineScreen';
 import { EditMedicineScreen } from '../screens/EditMedicineScreen';
 import { ForgotPasswordScreen } from '../screens/ForgotPasswordScreen';
 import { HomeScreen } from '../screens/HomeScreen';
-import { LoginScreen } from '../screens/LoginScreen';
-import { RegisterScreen } from '../screens/RegisterScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
+import { BackupSyncScreen } from '../screens/BackupSyncScreen';
+import { BackupSignInScreen } from '../screens/BackupSignInScreen';
+import { BackupRegisterScreen } from '../screens/BackupRegisterScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -63,7 +63,7 @@ const LoadingScreen = () => (
 );
 
 export const AppNavigator: React.FC = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isLoading } = useAuth();
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -71,21 +71,14 @@ export const AppNavigator: React.FC = () => {
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {!isAuthenticated ? (
-        <>
-          <Stack.Screen name="AuthWelcome" component={AuthWelcomeScreen} />
-          <Stack.Screen name="Login" component={LoginScreen} />
-          <Stack.Screen name="Register" component={RegisterScreen} />
-          <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-        </>
-      ) : (
-        <>
-          <Stack.Screen name="MainTabs" component={MainTabs} />
-          <Stack.Screen name="CreateMedicine" component={CreateMedicineScreen} />
-          <Stack.Screen name="EditMedicine" component={EditMedicineScreen} />
-          <Stack.Screen name="Completion" component={CompletionScreen} />
-        </>
-      )}
+      <Stack.Screen name="MainTabs" component={MainTabs} />
+      <Stack.Screen name="CreateMedicine" component={CreateMedicineScreen} />
+      <Stack.Screen name="EditMedicine" component={EditMedicineScreen} />
+      <Stack.Screen name="Completion" component={CompletionScreen} />
+      <Stack.Screen name="BackupSync" component={BackupSyncScreen} />
+      <Stack.Screen name="BackupSignIn" component={BackupSignInScreen} />
+      <Stack.Screen name="BackupRegister" component={BackupRegisterScreen} />
+      <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
     </Stack.Navigator>
   );
 };

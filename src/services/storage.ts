@@ -69,6 +69,23 @@ export const loadCompletionScreenSeen = async (scopeKey?: string): Promise<strin
   }
 };
 
+export const migrateGuestDataToUser = async (userUid: string): Promise<Medicine[]> => {
+  const guestMedicines = await loadMedicines('guest');
+  if (guestMedicines.length === 0) return [];
+
+  await saveMedicines(guestMedicines, userUid);
+
+  await AsyncStorage.removeItem(getMedicinesKey('guest'));
+  await AsyncStorage.removeItem(getCompletionKey('guest'));
+
+  return guestMedicines;
+};
+
+export const hasGuestData = async (): Promise<boolean> => {
+  const medicines = await loadMedicines('guest');
+  return medicines.length > 0;
+};
+
 export const clearAllData = async (scopeKey?: string): Promise<void> => {
   try {
     await AsyncStorage.multiRemove([getMedicinesKey(scopeKey), PROFILE_KEY, getCompletionKey(scopeKey)]);
